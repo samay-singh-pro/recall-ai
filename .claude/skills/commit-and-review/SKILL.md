@@ -9,10 +9,11 @@ Flow for every piece of work: **branch -> small commits -> review the diff -> fi
 
 ## 1. Branching
 - Every feature or change gets its own branch cut from an up-to-date `main`. Never commit directly to `main`.
-- Branch names are sequential: `RA-1`, `RA-2`, `RA-3`, ...
+- Branch names are `RA-<number>/<short-description>`: a sequential number, then a few kebab-case words saying what the branch does. Examples: `RA-1/project-init`, `RA-2/user-signup`, `RA-3/memory-search`.
+- Keep the description short (2 to 4 words), lowercase, hyphen-separated, and specific. `RA-4/fixes` is too vague.
 - Find the next number from existing branches (local and remote) before creating:
   `git fetch origin && git branch -a --list '*RA-*'`
-  Take the highest number and add one. Do not reuse or skip numbers.
+  Take the highest number (the part before the `/`) and add one. Do not reuse or skip numbers.
 - One branch = one feature or fix. If the work grows into something else, finish this branch and open a new one.
 
 ## 2. Commits
@@ -57,7 +58,7 @@ Classify findings as **blocking** (security, broken tests, lint failures, conven
 
 ## 4. Push and pull request
 - Pushing and opening a PR are outward-facing. Confirm with the user before the first push on a branch, unless they have already said to go ahead.
-- Push with upstream: `git push -u origin RA-<n>`.
+- Push with upstream: `git push -u origin RA-<n>/<short-description>`.
 - Open the PR against `main` with `gh pr create`. Title: short, same style as a commit message. No attribution lines in the title or description.
 - **Description template:**
   ```

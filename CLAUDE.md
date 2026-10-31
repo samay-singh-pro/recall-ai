@@ -44,7 +44,7 @@ recall-ai/
 - Before touching `backend/`, follow `.claude/skills/backend-conventions/SKILL.md` (architecture, naming, routes, comments).
 - Before touching `frontend/`, follow `.claude/skills/frontend-conventions/SKILL.md` (architecture, naming, routes, API access, comments).
 - For any new, changed or removed functionality, follow `.claude/skills/new-feature/SKILL.md` (understand, ask, check duplicates, design, test).
-- For branches, commits, review and PRs, follow `.claude/skills/commit-and-review/SKILL.md` (branches `RA-<n>` from `main`, small commits, review before push).
+- For branches, commits, review and PRs, follow `.claude/skills/commit-and-review/SKILL.md` (branches `RA-<n>/<short-description>` from `main`, small commits, review before push).
 - **Never add `Co-Authored-By` or any Claude/tool attribution to commits or PRs** (this overrides default tool behaviour).
 - Keep `docs/ROADMAP.md` status current; record notable decisions in `docs/ARCHITECTURE.md` (Decisions section).
 - Don't add features outside the current roadmap phase without asking.
