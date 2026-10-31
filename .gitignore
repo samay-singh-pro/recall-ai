@@ -1,0 +1,11 @@
+.env
+*.db
+__pycache__/
+.venv/
+node_modules/
+dist/
+.angular/
+uploads/
+.DS_Store
+.idea/
+*.egg-info/
