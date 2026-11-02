@@ -1,0 +1,77 @@
+<div class="search">
+  @if (!query()) {
+    <div class="search__intro">
+      <span class="search__intro-icon" aria-hidden="true"><i class="pi pi-search"></i></span>
+      <h1 class="search__intro-title">Find anything you've saved</h1>
+      <p class="search__intro-text">Describe it in your own words. Try one of these:</p>
+      <ng-container *ngTemplateOutlet="suggestionList" />
+    </div>
+  } @else if (isSearching()) {
+    <div class="search__loading" aria-label="Searching your memories">
+      <p-skeleton height="5.5rem" borderRadius="1rem" />
+      <p-skeleton width="9rem" height="0.875rem" />
+      @for (card of placeholderCards; track card) {
+        <p-skeleton height="5.25rem" borderRadius="1rem" />
+      }
+    </div>
+  } @else if (hasError()) {
+    <div class="search__state" role="alert">
+      <span class="search__state-icon" aria-hidden="true"
+        ><i class="pi pi-exclamation-circle"></i
+      ></span>
+      <h1 class="search__state-title">Couldn't search right now</h1>
+      <p class="search__state-text">Check your connection and try again.</p>
+      <p-button label="Try again" icon="pi pi-refresh" [rounded]="true" (onClick)="retry()" />
+    </div>
+  } @else if (result(); as result) {
+    @if (result.memories.length === 0) {
+      <div class="search__state">
+        <span class="search__state-icon" aria-hidden="true"><i class="pi pi-inbox"></i></span>
+        <h1 class="search__state-title">Nothing matches "{{ query() }}"</h1>
+        <p class="search__state-text">Try other words, or one of these:</p>
+        <ng-container *ngTemplateOutlet="suggestionList" />
+      </div>
+    } @else {
+      @if (result.answer; as answer) {
+        <section class="search__answer" aria-label="Answer">
+          <span class="search__answer-icon" aria-hidden="true"><i class="pi pi-sparkles"></i></span>
+          <div class="search__answer-body">
+            <p class="search__answer-text">{{ answer.text }}</p>
+            <p class="search__answer-basis">
+              From your saved memories
+              @for (source of answer.sources; track source.id) {
+                ·
+                <a class="search__answer-source" [routerLink]="['/home/memories', source.id]">{{
+                  source.title
+                }}</a>
+              }
+            </p>
+          </div>
+        </section>
+      }
+
+      <section class="search__results" aria-labelledby="results-heading">
+        <h2 id="results-heading" class="search__results-title">
+          {{ resultsHeading() }} <span class="search__count">{{ result.memories.length }}</span>
+        </h2>
+        <ul class="search__list">
+          @for (memory of result.memories; track memory.id) {
+            <li><ra-memory-card [memory]="memory" /></li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</div>
+
+<ng-template #suggestionList>
+  <ul class="search__suggestions" aria-label="Example searches">
+    @for (suggestion of suggestions; track suggestion) {
+      <li>
+        <button type="button" class="search__suggestion" (click)="searchFor(suggestion)">
+          <i class="pi pi-search" aria-hidden="true"></i>{{ suggestion }}
+        </button>
+      </li>
+    }
+  </ul>
+</ng-template>

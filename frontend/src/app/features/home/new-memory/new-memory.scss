@@ -1,0 +1,51 @@
+// Must match the breakpoint in app-header.scss, where the menu button appears.
+$wide-screen: 768px;
+$content-width: 48rem;
+
+:host {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.new-memory {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  padding: 1.5rem 1rem 4rem;
+  overflow-y: auto;
+
+  ra-memory-input {
+    max-width: $content-width;
+  }
+}
+
+.new-memory__hero {
+  text-align: center;
+}
+
+.new-memory__greeting {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.new-memory__subtitle {
+  margin: 0.5rem 0 0;
+  font-size: 1.0625rem;
+  color: var(--p-text-muted-color);
+}
+
+@media (max-width: $wide-screen - 1) {
+  .new-memory__greeting {
+    font-size: 1.375rem;
+  }
+
+  .new-memory__subtitle {
+    font-size: 1rem;
+  }
+}

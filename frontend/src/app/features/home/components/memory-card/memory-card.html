@@ -1,0 +1,33 @@
+<a
+  class="card"
+  [routerLink]="['/home/memories', memory().id]"
+  [style.--ra-type-color]="typeColor()"
+>
+  <span class="card__thumb" aria-hidden="true">
+    @if (thumbnailUrl(); as url) {
+      <img class="card__image" [src]="url" alt="" />
+    } @else {
+      <i [class]="icon()"></i>
+    }
+  </span>
+
+  <span class="card__body">
+    <span class="card__top">
+      <span class="card__title">{{ memory().title }}</span>
+      <span class="card__type">{{ typeLabel() }}</span>
+    </span>
+    @if (snippet()) {
+      <span class="card__snippet">{{ snippet() }}</span>
+    }
+    <span class="card__meta">
+      <span>Saved {{ memory().created_at | date: 'MMM d, y' }}</span>
+      @if (fileCount()) {
+        <span class="card__files">
+          <i class="pi pi-paperclip" aria-hidden="true"></i>{{ fileCount() }}
+        </span>
+      }
+    </span>
+  </span>
+
+  <i class="pi pi-arrow-right card__go" aria-hidden="true"></i>
+</a>

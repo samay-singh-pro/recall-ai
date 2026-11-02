@@ -1,0 +1,67 @@
+// Must match the breakpoint in app-header.scss, where the menu button appears.
+$wide-screen: 768px;
+
+:host {
+  display: block;
+}
+
+.home {
+  display: flex;
+  height: 100dvh;
+}
+
+// min-width: 0 stops long memory titles from stretching the sidebar; they get "…" instead.
+.home__sidebar {
+  display: flex;
+  flex: 0 0 17rem;
+  flex-direction: column;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0.75rem;
+  border-right: 1px solid var(--ra-border-color);
+  background: var(--ra-sidebar-background);
+}
+
+.home__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.25rem 0.5rem 1rem;
+}
+
+.home__logo {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.625rem;
+  background: linear-gradient(135deg, var(--p-primary-400), var(--p-primary-700));
+  color: var(--p-primary-contrast-color);
+  font-size: 0.875rem;
+}
+
+.home__brand-name {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.home__memories {
+  flex: 1;
+  min-height: 0;
+  margin: 0.5rem -0.25rem 0;
+  overflow-y: auto;
+}
+
+.home__main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+@media (max-width: $wide-screen - 1) {
+  .home__sidebar {
+    display: none;
+  }
+}

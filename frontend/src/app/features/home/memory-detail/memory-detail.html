@@ -1,0 +1,147 @@
+<div class="detail">
+  <div class="detail__toolbar">
+    <p-button
+      label="Back"
+      icon="pi pi-arrow-left"
+      severity="secondary"
+      size="small"
+      [text]="true"
+      (onClick)="goBack()"
+    />
+    @if (memory()) {
+      <p-button
+        icon="pi pi-ellipsis-h"
+        severity="secondary"
+        [text]="true"
+        [rounded]="true"
+        ariaLabel="More actions"
+        (onClick)="actionsMenu.toggle($event)"
+      />
+    }
+  </div>
+
+  @if (isLoading()) {
+    <div class="detail__loading" aria-label="Loading memory">
+      <div class="detail__header">
+        <p-skeleton size="3.25rem" borderRadius="0.875rem" />
+        <div class="detail__heading">
+          <p-skeleton width="16rem" height="1.75rem" />
+          <p-skeleton width="12rem" height="1rem" />
+        </div>
+      </div>
+      <div class="detail__body">
+        <p-skeleton height="24rem" borderRadius="1rem" />
+        <div class="detail__aside">
+          <p-skeleton height="6rem" borderRadius="1rem" />
+          <p-skeleton height="8rem" borderRadius="1rem" />
+        </div>
+      </div>
+    </div>
+  } @else if (memory(); as memory) {
+    <header class="detail__header">
+      <span class="detail__type-tile" aria-hidden="true" [style.--ra-type-color]="typeColor()">
+        <i [class]="typeIcon()"></i>
+      </span>
+      <div class="detail__heading">
+        @if (isEditingTitle()) {
+          <div class="detail__title-edit">
+            <input
+              #titleInput
+              pInputText
+              class="detail__title-input"
+              aria-label="Memory title"
+              [maxlength]="titleMaxLength"
+              [ngModel]="titleDraft()"
+              (ngModelChange)="titleDraft.set($event)"
+              (keydown.enter)="saveTitle()"
+              (keydown.escape)="cancelEditingTitle()"
+            />
+            <p-button
+              icon="pi pi-check"
+              [rounded]="true"
+              ariaLabel="Save title"
+              [disabled]="!canSaveTitle()"
+              (onClick)="saveTitle()"
+            />
+            <p-button
+              icon="pi pi-times"
+              severity="secondary"
+              [rounded]="true"
+              [text]="true"
+              ariaLabel="Cancel"
+              (onClick)="cancelEditingTitle()"
+            />
+          </div>
+        } @else {
+          <div class="detail__title-row">
+            <h1 class="detail__title">{{ memory.title }}</h1>
+            <p-button
+              class="detail__rename"
+              icon="pi pi-pencil"
+              severity="secondary"
+              size="small"
+              [text]="true"
+              [rounded]="true"
+              ariaLabel="Edit title"
+              (onClick)="startEditingTitle()"
+            />
+          </div>
+        }
+        <div class="detail__meta">
+          <span class="detail__type" [style.--ra-type-color]="typeColor()">{{ typeLabel() }}</span>
+          <span aria-hidden="true">·</span>
+          <span>Saved {{ memory.created_at | date: 'MMM d, y, h:mm a' }}</span>
+          @if (fileCount()) {
+            <span aria-hidden="true">·</span>
+            <span>{{ fileCount() }}</span>
+          }
+          @if (memory.source_memory; as source) {
+            <span aria-hidden="true">·</span>
+            <span class="detail__source">
+              Answer saved from
+              <a [routerLink]="['/home/memories', source.id]">{{ source.title }}</a>
+            </span>
+          }
+        </div>
+      </div>
+    </header>
+
+    <div class="detail__body">
+      <section class="detail__original" aria-label="Original content">
+        <ra-memory-content [memory]="memory" (copyText)="copy($event)" />
+      </section>
+
+      <aside class="detail__aside">
+        @if (memory.summary) {
+          <section class="detail__card detail__summary" aria-labelledby="summary-heading">
+            <h2 id="summary-heading" class="detail__card-title">
+              <i class="pi pi-sparkles" aria-hidden="true"></i> AI summary
+            </h2>
+            <p class="detail__summary-text">{{ memory.summary }}</p>
+          </section>
+        }
+
+        <ra-ask-memory
+          class="detail__card"
+          [answer]="answer()"
+          [isAsking]="isAsking()"
+          [isSaving]="isSavingAnswer()"
+          [savedAnswer]="savedAnswer()"
+          (ask)="askMemory($event)"
+          (saveAnswer)="saveAnswer()"
+          (openSavedAnswer)="openMemory($event)"
+        />
+      </aside>
+    </div>
+  } @else {
+    <div class="detail__missing" role="alert">
+      <span class="detail__missing-icon" aria-hidden="true"><i class="pi pi-inbox"></i></span>
+      <h1 class="detail__missing-title">This memory isn't here</h1>
+      <p class="detail__missing-text">It may have been deleted, or the link is wrong.</p>
+      <p-button label="Go home" icon="pi pi-home" [rounded]="true" (onClick)="goHome()" />
+    </div>
+  }
+</div>
+
+<p-menu #actionsMenu [model]="actions()" [popup]="true" appendTo="body" />
+<p-confirmdialog [style]="{ width: '24rem', maxWidth: 'calc(100vw - 2rem)' }" />

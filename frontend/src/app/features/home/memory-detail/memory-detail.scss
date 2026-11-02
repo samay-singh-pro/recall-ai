@@ -1,0 +1,263 @@
+// Wide enough for the summary and questions to sit beside the content instead of below it.
+$two-columns: 56rem;
+
+:host {
+  display: block;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  container-type: inline-size;
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0.75rem 1.5rem 4rem;
+}
+
+.detail__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 -0.5rem -0.75rem;
+}
+
+.detail__loading {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+// Header: type tile beside the title and its details.
+.detail__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.detail__type-tile {
+  display: grid;
+  flex: 0 0 3.25rem;
+  place-items: center;
+  height: 3.25rem;
+  border-radius: 0.875rem;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ra-type-color) 20%, transparent),
+    color-mix(in srgb, var(--ra-type-color) 6%, transparent)
+  );
+  color: var(--ra-type-color);
+
+  .pi {
+    font-size: 1.375rem;
+  }
+}
+
+.detail__heading {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.detail__title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.detail__title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+// Shown on hover so the title reads cleanly; always visible on touch screens.
+.detail__rename {
+  margin-top: 0.125rem;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.detail__title-row:hover .detail__rename,
+.detail__rename:focus-within {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .detail__rename {
+    opacity: 1;
+  }
+}
+
+.detail__title-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.detail__title-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.detail__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
+
+.detail__type {
+  font-weight: 600;
+  color: var(--ra-type-color);
+}
+
+.detail__source a {
+  color: var(--p-primary-color);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// Body: content first; summary and questions stack below, or sit beside it on wide screens.
+.detail__body {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.detail__original {
+  min-width: 0;
+}
+
+.detail__aside {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+@container (min-width: #{$two-columns}) {
+  .detail__body {
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, 26rem);
+    align-items: start;
+  }
+
+  .detail__aside {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+.detail__card {
+  display: block;
+  padding: 1rem 1.125rem;
+  border: 1px solid var(--ra-border-color);
+  border-radius: 1rem;
+  background: var(--ra-page-background);
+}
+
+.detail__card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--p-text-muted-color);
+
+  .pi {
+    color: var(--p-primary-color);
+  }
+}
+
+.detail__summary {
+  padding: 1.25rem 1.375rem;
+  border-color: color-mix(in srgb, var(--p-primary-color) 22%, transparent);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--p-primary-color) 9%, var(--ra-page-background)),
+    var(--ra-page-background) 70%
+  );
+}
+
+.detail__summary-text {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.7;
+}
+
+.detail__missing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 4rem 1rem;
+  text-align: center;
+}
+
+.detail__missing-icon {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: 0.5rem;
+  border-radius: 1rem;
+  background: var(--ra-subtle-background);
+  color: var(--p-text-muted-color);
+  font-size: 1.25rem;
+}
+
+.detail__missing-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.detail__missing-text {
+  margin: 0 0 1rem;
+  color: var(--p-text-muted-color);
+}
+
+@media (max-width: 767px) {
+  .detail {
+    padding: 0.75rem 1rem 3rem;
+  }
+
+  .detail__header {
+    gap: 0.75rem;
+  }
+
+  .detail__type-tile {
+    flex-basis: 2.75rem;
+    height: 2.75rem;
+    font-size: 1.125rem;
+  }
+
+  .detail__title {
+    font-size: 1.25rem;
+  }
+
+  .detail__summary {
+    padding: 1rem 1.125rem;
+  }
+
+  .detail__summary-text {
+    font-size: 1rem;
+  }
+}

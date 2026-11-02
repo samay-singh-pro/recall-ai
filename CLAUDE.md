@@ -22,7 +22,7 @@ It is a **learning project** for AI engineering + backend, but must be **product
 - Deploy: Docker + Docker Compose, then one free host (Render/Fly/Railway)
 
 ## Screens (Angular)
-Login, Sign up, Dump (main), Memories (history), Timeline/Tasks, Chat.
+Login, Sign up, Home (the one main screen: sidebar of memories, add box in the middle for text/files/links, header ask bar that turns the middle into a chat about your memories). Timeline/Tasks later.
 
 ## Repo layout
 ```
@@ -32,7 +32,7 @@ recall-ai/
   docs/ARCHITECTURE.md <- design, data model, agent design
   docs/ROADMAP.md      <- phases + status (update as work completes)
   backend/             <- FastAPI app (initialised: config + /api/v1/health; venv in backend/.venv)
-  frontend/            <- Angular 21 app (initialised, PrimeNG theme + HttpClient wired; no screens yet)
+  frontend/            <- Angular 21 app (PrimeNG theme + HttpClient wired; Home screen in progress)
   .claude/skills/      <- backend-conventions, frontend-conventions, new-feature, commit-and-review
   docker-compose.yml   <- later
   .env.example

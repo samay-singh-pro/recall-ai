@@ -7,5 +7,9 @@ Status: [x] done, [ ] todo, [~] in progress
 - [ ] **Phase 2** — Text dumps: memories CRUD, embeddings, LangChain VectorStore (Chroma), search, LangGraph chat agent (core learning loop)
 - [ ] **Phase 3** — File/link ingestion: image (vision/OCR), PDF, Excel, URL, Maps link
 - [ ] **Phase 4** — Tasks/timeline: extraction from dumps, reminders via APScheduler
-- [ ] **Phase 5** — Angular + PrimeNG UI: login, signup, dump, memories, timeline, chat
+- [~] **Phase 5** — Angular + PrimeNG UI: login, signup, home (add box + memories panel with search), timeline
+  - [~] Home screen, built ahead of the backend against an in-browser stand-in `memories-api.ts`
+    - [x] Memory Detail page (original content per format, summary, rename, copy, download, delete)
+    - [x] Ask this memory + Save answer
+    - [x] Global Search screen (replaces the chat)
 - [ ] **Phase 6** — Tests, CI, Docker Compose, deploy to free host, pgvector switch

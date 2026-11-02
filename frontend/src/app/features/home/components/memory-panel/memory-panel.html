@@ -1,0 +1,43 @@
+<nav class="memory-panel" aria-label="Your memories">
+  @if (isLoading()) {
+    <div class="memory-panel__loading">
+      @for (row of skeletonRows; track row) {
+        <p-skeleton height="1.75rem" borderRadius="0.5rem" />
+      }
+    </div>
+  } @else if (hasError()) {
+    <p-message severity="error" size="small">Couldn't load your memories.</p-message>
+  } @else if (menuGroups().length === 0) {
+    <div class="memory-panel__empty">
+      <i class="pi pi-inbox" aria-hidden="true"></i>
+      <p>Nothing remembered yet.<br />Your saved things will show up here.</p>
+    </div>
+  } @else {
+    <p-menu [model]="menuGroups()" [dt]="menuTokens">
+      <ng-template #item let-item>
+        <div class="memory-panel__row" [title]="item.label">
+          <i [class]="item.icon" aria-hidden="true"></i>
+          <span class="memory-panel__row-title">{{ item.label }}</span>
+          @if (item.state.fileCount > 0) {
+            <span class="memory-panel__files" [attr.aria-label]="item.state.fileCount + ' files'">
+              <i class="pi pi-paperclip" aria-hidden="true"></i>{{ item.state.fileCount }}
+            </span>
+          }
+          <span class="memory-panel__row-time">{{ item.state.time }}</span>
+          <p-button
+            class="memory-panel__delete"
+            icon="pi pi-trash"
+            severity="danger"
+            size="small"
+            [text]="true"
+            [rounded]="true"
+            [ariaLabel]="'Delete ' + item.label"
+            (onClick)="confirmDelete($event, item.state.memory)"
+          />
+        </div>
+      </ng-template>
+    </p-menu>
+  }
+</nav>
+
+<p-confirmpopup />

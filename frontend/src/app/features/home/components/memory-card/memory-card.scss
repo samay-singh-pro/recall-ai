@@ -1,0 +1,138 @@
+:host {
+  display: block;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--ra-border-color);
+  border-radius: 1rem;
+  background: var(--ra-page-background);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    transform 0.15s;
+
+  &:hover,
+  &:focus-visible {
+    border-color: color-mix(in srgb, var(--ra-type-color) 45%, var(--ra-border-color));
+    box-shadow: var(--ra-shadow);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--p-primary-color);
+    outline-offset: 2px;
+  }
+}
+
+.card__thumb {
+  display: grid;
+  flex: 0 0 3.5rem;
+  place-items: center;
+  height: 3.5rem;
+  overflow: hidden;
+  border-radius: 0.875rem;
+  background: color-mix(in srgb, var(--ra-type-color) 14%, transparent);
+  color: var(--ra-type-color);
+
+  .pi {
+    font-size: 1.25rem;
+  }
+}
+
+.card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.card__top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card__title {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card__type {
+  flex-shrink: 0;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ra-type-color) 12%, transparent);
+  color: var(--ra-type-color);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+// Two lines at most, then "…".
+.card__snippet {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--p-text-muted-color);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.card__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+}
+
+.card__files {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  .pi {
+    font-size: 0.6875rem;
+  }
+}
+
+.card__go {
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+  opacity: 0;
+  transform: translateX(-0.25rem);
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+
+.card:hover .card__go,
+.card:focus-visible .card__go {
+  opacity: 1;
+  transform: none;
+}
+
+@media (hover: none) {
+  .card__go {
+    opacity: 1;
+    transform: none;
+  }
+}

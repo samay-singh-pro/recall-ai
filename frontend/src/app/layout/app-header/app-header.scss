@@ -1,0 +1,76 @@
+// Below this width the memory sidebar becomes a slide-in drawer opened from the menu button.
+$wide-screen: 768px;
+
+// Below this header width there's no room to centre the slot (must match memory-search.scss).
+$narrow: 44rem;
+// Toolbar padding (1rem) + gap (1rem) + side column = --ra-center-side on each side.
+$side-column: calc(var(--ra-center-side) - 2rem);
+
+:host {
+  display: block;
+  border-bottom: 1px solid var(--ra-border-color);
+  container-type: inline-size;
+}
+
+// Equal side columns keep the middle slot centred over the page below, whatever sits beside it.
+p-toolbar {
+  display: grid;
+  grid-template-columns:
+    minmax($side-column, 1fr)
+    minmax(0, var(--ra-center-width))
+    minmax($side-column, 1fr);
+  gap: 1rem;
+}
+
+// When narrow, the slot simply takes the room left between the buttons.
+@container (max-width: #{$narrow}) {
+  p-toolbar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.5rem;
+  }
+}
+
+.app-header__end {
+  justify-content: flex-end;
+}
+
+.app-header__start,
+.app-header__end,
+.app-header__user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+// min-width: 0 lets the middle content shrink on narrow screens instead of pushing the bar wider.
+.app-header__middle {
+  min-width: 0;
+}
+
+.app-header__user {
+  padding: 0.25rem 0.75rem 0.25rem 0.25rem;
+  border-radius: 999px;
+  background: var(--ra-subtle-background);
+}
+
+.app-header__user-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+@media (min-width: $wide-screen) {
+  .app-header__menu {
+    display: none;
+  }
+}
+
+@media (max-width: $wide-screen - 1) {
+  .app-header__user {
+    padding: 0;
+    background: none;
+  }
+
+  .app-header__user-name {
+    display: none;
+  }
+}

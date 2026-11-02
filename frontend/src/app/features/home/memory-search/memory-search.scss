@@ -1,0 +1,237 @@
+// Below this width the header can't centre its search bar (must match app-header.scss).
+$narrow: 44rem;
+
+// Equal scrollbar space on both sides keeps the results centred under the header search bar.
+:host {
+  display: block;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
+  container-type: inline-size;
+}
+
+// Same width rule as the header's centre slot, so the results line up with the search bar.
+.search {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: min(var(--ra-center-width), 100cqw - 2 * var(--ra-center-side));
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+@container (max-width: #{$narrow}) {
+  .search {
+    width: auto;
+    padding: 1.5rem 1rem 3rem;
+  }
+}
+
+// Before searching, and when nothing matched or something failed.
+.search__intro,
+.search__state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 3rem;
+  text-align: center;
+}
+
+.search__intro-icon,
+.search__state-icon {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: 0.5rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--p-primary-color) 12%, transparent);
+  color: var(--p-primary-color);
+
+  .pi {
+    font-size: 1.375rem;
+  }
+}
+
+.search__state-icon {
+  background: var(--ra-subtle-background);
+  color: var(--p-text-muted-color);
+}
+
+.search__intro-title,
+.search__state-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.search__intro-text,
+.search__state-text {
+  margin: 0 0 1rem;
+  color: var(--p-text-muted-color);
+}
+
+.search__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search__suggestion {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--ra-border-color);
+  border-radius: 999px;
+  background: var(--ra-page-background);
+  color: var(--p-text-color);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+
+  .pi {
+    font-size: 0.75rem;
+    color: var(--p-text-muted-color);
+  }
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--p-primary-color) 45%, var(--ra-border-color));
+    background: color-mix(in srgb, var(--p-primary-color) 6%, var(--ra-page-background));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--p-primary-color);
+    outline-offset: 2px;
+  }
+}
+
+.search__loading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+// The answer: short, calm and clearly from the user's own memories.
+.search__answer {
+  display: flex;
+  gap: 0.875rem;
+  padding: 1.125rem 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--p-primary-color) 22%, transparent);
+  border-radius: 1rem;
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--p-primary-color) 9%, var(--ra-page-background)),
+    var(--ra-page-background) 70%
+  );
+}
+
+.search__answer-icon {
+  display: grid;
+  flex: 0 0 2rem;
+  place-items: center;
+  height: 2rem;
+  border-radius: 0.625rem;
+  background: linear-gradient(135deg, var(--p-primary-400), var(--p-primary-700));
+  color: var(--p-primary-contrast-color);
+
+  .pi {
+    font-size: 0.875rem;
+  }
+}
+
+.search__answer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.search__answer-text {
+  margin: 0.125rem 0 0;
+  font-size: 1.125rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.search__answer-basis {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--p-text-muted-color);
+}
+
+.search__answer-source {
+  font-weight: 500;
+  color: var(--p-primary-color);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.search__results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.search__results-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--p-text-muted-color);
+}
+
+.search__count {
+  padding: 0 0.4375rem;
+  border-radius: 999px;
+  background: var(--ra-subtle-background);
+  letter-spacing: 0;
+}
+
+.search__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 767px) {
+  .search__intro,
+  .search__state {
+    padding-top: 1.5rem;
+  }
+
+  .search__intro-title,
+  .search__state-title {
+    font-size: 1.25rem;
+  }
+
+  .search__answer {
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .search__answer-text {
+    font-size: 1rem;
+  }
+}

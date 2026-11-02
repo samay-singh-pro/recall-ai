@@ -1,0 +1,34 @@
+<p-toolbar [dt]="toolbarTokens">
+  <div class="app-header__start">
+    <p-button
+      class="app-header__menu"
+      icon="pi pi-bars"
+      severity="secondary"
+      [text]="true"
+      [rounded]="true"
+      ariaLabel="Show memories"
+      (onClick)="menuToggle.emit()"
+    />
+  </div>
+
+  <div class="app-header__middle">
+    <ng-content />
+  </div>
+
+  <div class="app-header__end">
+    <p-button
+      [icon]="themeIcon()"
+      severity="secondary"
+      [text]="true"
+      [rounded]="true"
+      [ariaLabel]="themeLabel()"
+      [pTooltip]="themeLabel()"
+      tooltipPosition="bottom"
+      (onClick)="theme.toggle()"
+    />
+    <div class="app-header__user">
+      <p-avatar [label]="userInitial()" shape="circle" />
+      <span class="app-header__user-name">{{ userName() }}</span>
+    </div>
+  </div>
+</p-toolbar>

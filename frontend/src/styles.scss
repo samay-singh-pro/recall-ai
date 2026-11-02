@@ -1,1 +1,61 @@
 @use 'primeicons/primeicons.css';
+
+// App-level colour roles, built only from PrimeNG theme tokens, redefined for dark mode.
+:root {
+  // The header's centre slot (search bar) and pages centred under it share this, so they line up:
+  // the slot is at most --ra-center-width and always keeps --ra-center-side free on each side.
+  --ra-center-width: 44rem;
+  --ra-center-side: 12rem;
+
+  --ra-page-background: var(--p-surface-0);
+  --ra-sidebar-background: var(--p-surface-50);
+  --ra-subtle-background: var(--p-surface-100);
+  --ra-border-color: var(--p-surface-200);
+  --ra-shadow: 0 1px 2px rgb(0 0 0 / 4%), 0 8px 24px rgb(0 0 0 / 6%);
+}
+
+:root.app-dark {
+  --ra-page-background: var(--p-surface-950);
+  --ra-sidebar-background: var(--p-surface-900);
+  --ra-subtle-background: var(--p-surface-800);
+  --ra-border-color: var(--p-surface-800);
+  --ra-shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px rgb(0 0 0 / 35%);
+}
+
+html {
+  background: var(--ra-page-background);
+  color: var(--p-text-color);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+}
+
+// Phones: everything is sized in rem, so a smaller root size shrinks all text evenly.
+@media (max-width: 767px) {
+  html {
+    font-size: 15px;
+  }
+
+  // iPhone Safari zooms the whole page when a text box under 16px is tapped; keep them at 16px.
+  input,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+// Toast cards are neutral (app-preset.ts); the icon alone says how it went.
+.p-toast-message-success .p-toast-message-icon,
+.p-toast-message-info .p-toast-message-icon {
+  color: var(--p-primary-color);
+}
+
+.p-toast-message-warn .p-toast-message-icon {
+  color: var(--p-amber-500);
+}
+
+.p-toast-message-error .p-toast-message-icon {
+  color: var(--p-red-500);
+}

@@ -1,0 +1,56 @@
+@switch (attachment().kind) {
+  @case ('image') {
+    <div class="preview preview--centered">
+      <p-image
+        [src]="attachment().file_url"
+        [alt]="attachment().file_name"
+        [preview]="true"
+        [imageStyle]="imageStyle"
+      />
+    </div>
+  }
+  @case ('pdf') {
+    @if (pdfUrl(); as url) {
+      <iframe class="preview__pdf" [src]="url" [title]="attachment().file_name"></iframe>
+    }
+  }
+  @default {
+    @if (sheet(); as sheet) {
+      <div class="preview preview--sheet">
+        <p-table [value]="sheet.rows" size="small" [showGridlines]="true">
+          <ng-template #header>
+            <tr>
+              @for (heading of sheet.headers; track $index) {
+                <th>{{ heading }}</th>
+              }
+            </tr>
+          </ng-template>
+          <ng-template #body let-row>
+            <tr>
+              @for (cell of row; track $index) {
+                <td>{{ cell }}</td>
+              }
+            </tr>
+          </ng-template>
+        </p-table>
+        <p class="preview__note">Preview of the first rows. Download for the full sheet.</p>
+      </div>
+    } @else {
+      <div class="preview preview--centered preview__fallback">
+        <span class="preview__fallback-icon" aria-hidden="true"><i [class]="icon()"></i></span>
+        <span class="preview__fallback-name">{{ attachment().file_name }}</span>
+        <span class="preview__fallback-details">{{ details() }} · No preview available</span>
+        <a
+          pButton
+          size="small"
+          [rounded]="true"
+          [href]="attachment().file_url"
+          [attr.download]="attachment().file_name"
+        >
+          <i pButtonIcon class="pi pi-download"></i>
+          <span pButtonLabel>Download</span>
+        </a>
+      </div>
+    }
+  }
+}

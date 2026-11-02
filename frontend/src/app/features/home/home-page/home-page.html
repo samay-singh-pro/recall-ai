@@ -1,0 +1,45 @@
+<div class="home">
+  <aside class="home__sidebar">
+    <ng-container *ngTemplateOutlet="sidebar" />
+  </aside>
+
+  <div class="home__main">
+    <ra-app-header [userName]="userName" (menuToggle)="isPanelOpen.set(true)">
+      <ra-search-bar [query]="searchQuery()" (search)="search($event)" (clear)="clearSearch()" />
+    </ra-app-header>
+
+    <router-outlet />
+  </div>
+</div>
+
+<!-- On phones the sidebar is hidden and opens as a drawer from the header's menu button. -->
+<p-drawer [(visible)]="isPanelOpen" [showCloseIcon]="true">
+  <ng-container *ngTemplateOutlet="sidebar" />
+</p-drawer>
+
+<ng-template #sidebar>
+  <div class="home__brand">
+    <span class="home__logo" aria-hidden="true"><i class="pi pi-sparkles"></i></span>
+    <span class="home__brand-name">Recall AI</span>
+  </div>
+  <p-button
+    class="home__new"
+    label="New memory"
+    icon="pi pi-plus"
+    [rounded]="true"
+    [fluid]="true"
+    (onClick)="startNewMemory()"
+  />
+  <div class="home__memories">
+    <ra-memory-panel
+      [memories]="library.memories()"
+      [isLoading]="library.isFirstLoad()"
+      [hasError]="library.hasError()"
+      (openMemory)="openMemory($event)"
+      (deleteMemory)="deleteMemory($event)"
+    />
+  </div>
+</ng-template>
+
+<!-- Sits just below the header so it never covers the theme button or avatar. -->
+<p-toast position="top-right" [style]="{ top: '4.75rem' }" />
