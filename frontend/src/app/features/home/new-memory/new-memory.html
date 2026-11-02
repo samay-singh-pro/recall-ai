@@ -1,0 +1,7 @@
+<main class="new-memory">
+  <div class="new-memory__hero">
+    <h1 class="new-memory__greeting">{{ greeting() }}</h1>
+    <p class="new-memory__subtitle">What should I remember for you today?</p>
+  </div>
+  <ra-memory-input [isSaving]="isSaving()" (remember)="saveMemory($event)" />
+</main>

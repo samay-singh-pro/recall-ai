@@ -1,0 +1,83 @@
+<div
+  class="memory-input"
+  [class.memory-input--dragging]="isDraggingOver()"
+  (dragover)="handleDragOver($event)"
+  (dragleave)="isDraggingOver.set(false)"
+  (drop)="handleDrop($event)"
+>
+  <textarea
+    #textBox
+    pTextarea
+    class="memory-input__text"
+    rows="2"
+    [autoResize]="true"
+    placeholder="Type a note, paste a link, or drop images, PDFs and spreadsheets…"
+    aria-label="What do you want to remember?"
+    [ngModel]="text()"
+    (ngModelChange)="text.set($event)"
+    (keydown.enter)="handleEnter($event)"
+    (paste)="handlePaste($event)"
+  ></textarea>
+
+  @if (files().length > 0) {
+    <div class="memory-input__files">
+      @for (file of files(); track file) {
+        <p-chip
+          [label]="file.name"
+          icon="pi pi-file"
+          [removable]="true"
+          (onRemove)="removeFile(file)"
+        />
+      }
+    </div>
+  }
+
+  <div class="memory-input__actions">
+    <p-button
+      icon="pi pi-paperclip"
+      severity="secondary"
+      [text]="true"
+      [rounded]="true"
+      ariaLabel="Attach files"
+      pTooltip="Attach files"
+      (onClick)="filePicker.click()"
+    />
+    <input
+      #filePicker
+      type="file"
+      multiple
+      hidden
+      [accept]="acceptedFileTypes"
+      (change)="handleFilePicked($event)"
+    />
+    <p-button
+      label="Remember"
+      icon="pi pi-arrow-up"
+      iconPos="right"
+      [rounded]="true"
+      [loading]="isSaving()"
+      [disabled]="!canRemember()"
+      (onClick)="submit()"
+    />
+  </div>
+</div>
+
+<div class="memory-input__suggestions">
+  @for (suggestion of suggestions; track suggestion.label) {
+    <p-button
+      [label]="suggestion.label"
+      [icon]="suggestion.icon"
+      severity="secondary"
+      size="small"
+      [outlined]="true"
+      [rounded]="true"
+      (onClick)="useSuggestion(suggestion, filePicker)"
+    />
+  }
+</div>
+
+@if (errorMessage()) {
+  <p-message severity="error" size="small" variant="simple" class="memory-input__error">
+    {{ errorMessage() }}
+  </p-message>
+}

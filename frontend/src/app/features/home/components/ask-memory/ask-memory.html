@@ -1,0 +1,67 @@
+<section class="ask" aria-labelledby="ask-heading">
+  <h2 id="ask-heading" class="ask__title">
+    <i class="pi pi-comment" aria-hidden="true"></i> Ask this memory
+  </h2>
+
+  <div class="ask__box">
+    <input
+      pInputText
+      class="ask__input"
+      placeholder="Ask about this memory…"
+      aria-label="Question about this memory"
+      enterkeyhint="send"
+      [ngModel]="question()"
+      (ngModelChange)="question.set($event)"
+      (keydown.enter)="submit()"
+    />
+    <p-button
+      icon="pi pi-arrow-up"
+      [rounded]="true"
+      ariaLabel="Ask"
+      [disabled]="!canAsk()"
+      (onClick)="submit()"
+    />
+  </div>
+
+  <div aria-live="polite">
+    @if (isAsking()) {
+      <div class="ask__answer" aria-label="Finding the answer">
+        <p-skeleton width="40%" height="0.875rem" />
+        <p-skeleton width="85%" height="1rem" />
+      </div>
+    } @else if (answer(); as answer) {
+      <div class="ask__answer">
+        <p class="ask__question">{{ answer.question }}</p>
+        <p class="ask__text" [class.ask__text--missing]="!answer.found">{{ answer.text }}</p>
+
+        @if (answer.found) {
+          <div class="ask__footer">
+            <span class="ask__basis">Based only on this memory</span>
+            @if (savedAnswer(); as saved) {
+              <span class="ask__saved">
+                <i class="pi pi-check-circle" aria-hidden="true"></i>
+                Saved as a new memory linked to this one
+              </span>
+              <p-button
+                label="Open"
+                size="small"
+                [link]="true"
+                (onClick)="openSavedAnswer.emit(saved)"
+              />
+            } @else {
+              <p-button
+                label="Save answer"
+                icon="pi pi-bookmark"
+                size="small"
+                [rounded]="true"
+                [outlined]="true"
+                [loading]="isSaving()"
+                (onClick)="saveAnswer.emit()"
+              />
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+</section>

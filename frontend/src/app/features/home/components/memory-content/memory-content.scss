@@ -1,0 +1,175 @@
+// Every format shows in a stage of this same height, so memories look consistent.
+:host {
+  --ra-stage-height: clamp(14rem, 42vh, 24rem);
+
+  display: block;
+}
+
+.viewer {
+  overflow: hidden;
+  border: 1px solid var(--ra-border-color);
+  border-radius: 1rem;
+  background: var(--ra-page-background);
+  box-shadow: var(--ra-shadow);
+}
+
+.viewer__parts {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--ra-border-color);
+}
+
+.viewer__part-label {
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewer__parts-count {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+  white-space: nowrap;
+}
+
+.viewer__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  border-bottom: 1px solid var(--ra-border-color);
+}
+
+.viewer__icon {
+  display: grid;
+  flex: 0 0 2.25rem;
+  place-items: center;
+  height: 2.25rem;
+  border-radius: 0.625rem;
+  background: color-mix(in srgb, var(--ra-type-color) 14%, transparent);
+  color: var(--ra-type-color);
+
+  .pi {
+    font-size: 1.0625rem;
+  }
+}
+
+.viewer__name {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.viewer__label {
+  overflow: hidden;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewer__details {
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+}
+
+.viewer__actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.25rem;
+
+  // These buttons are links underneath (open, download), so drop the link underline.
+  a[pButton] {
+    text-decoration: none;
+  }
+}
+
+.viewer__stage {
+  height: var(--ra-stage-height);
+  background: var(--ra-subtle-background);
+}
+
+.viewer__text {
+  box-sizing: border-box;
+  height: 100%;
+  margin: 0;
+  padding: 1.5rem 1.75rem;
+  overflow-y: auto;
+  background: var(--ra-page-background);
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.viewer__link {
+  display: flex;
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 100%;
+  padding: 1.5rem;
+  overflow-y: auto;
+  text-align: center;
+}
+
+.viewer__link-tile {
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  height: 4rem;
+  margin-bottom: 0.5rem;
+  border-radius: 1rem;
+  background: var(--ra-page-background);
+  box-shadow: var(--ra-shadow);
+  color: var(--ra-type-color, var(--p-primary-color));
+
+  .pi {
+    font-size: 1.5rem;
+  }
+}
+
+.viewer__link-domain {
+  font-size: 0.8125rem;
+  color: var(--p-text-muted-color);
+}
+
+.viewer__link-title {
+  max-width: 32rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.viewer__link-description {
+  max-width: 32rem;
+  line-height: 1.6;
+  color: var(--p-text-muted-color);
+}
+
+.viewer__link-url {
+  max-width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--p-primary-color);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767px) {
+  .viewer__text {
+    padding: 1.25rem;
+    font-size: 1rem;
+  }
+
+  .viewer__link-title {
+    font-size: 1.0625rem;
+  }
+}

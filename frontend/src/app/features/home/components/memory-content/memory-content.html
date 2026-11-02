@@ -1,0 +1,108 @@
+<div class="viewer">
+  @if (parts().length > 1) {
+    <div class="viewer__parts">
+      <p-selectbutton
+        size="small"
+        optionValue="id"
+        [options]="parts()"
+        [allowEmpty]="false"
+        [ngModel]="selectedPartId()"
+        (ngModelChange)="selectedPartId.set($event)"
+      >
+        <ng-template #item let-part>
+          <i [class]="part.icon" aria-hidden="true"></i>
+          <span class="viewer__part-label">{{ part.label }}</span>
+        </ng-template>
+      </p-selectbutton>
+      <span class="viewer__parts-count">{{ parts().length }} parts</span>
+    </div>
+  }
+
+  @if (selectedPart(); as part) {
+    <div class="viewer__bar" [style.--ra-type-color]="part.color">
+      <span class="viewer__icon" aria-hidden="true"><i [class]="part.icon"></i></span>
+      <span class="viewer__name">
+        <span class="viewer__label">{{ part.label }}</span>
+        <span class="viewer__details">{{ part.details }}</span>
+      </span>
+      <span class="viewer__actions">
+        @if (part.attachment; as file) {
+          @if (file.kind !== 'excel') {
+            <a
+              pButton
+              size="small"
+              severity="secondary"
+              [text]="true"
+              [rounded]="true"
+              [href]="file.file_url"
+              target="_blank"
+              rel="noopener noreferrer"
+              [attr.aria-label]="'Open ' + file.file_name + ' in a new tab'"
+            >
+              <i pButtonIcon class="pi pi-external-link"></i>
+            </a>
+          }
+          <a
+            pButton
+            size="small"
+            [rounded]="true"
+            [outlined]="true"
+            [href]="file.file_url"
+            [attr.download]="file.file_name"
+          >
+            <i pButtonIcon class="pi pi-download"></i>
+            <span pButtonLabel>Download</span>
+          </a>
+        } @else if (isLink()) {
+          <a
+            pButton
+            size="small"
+            [rounded]="true"
+            [outlined]="true"
+            [href]="memory().raw_text"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <i pButtonIcon class="pi pi-external-link"></i>
+            <span pButtonLabel>{{ linkLabel() }}</span>
+          </a>
+        } @else {
+          <p-button
+            label="Copy"
+            icon="pi pi-copy"
+            size="small"
+            [rounded]="true"
+            [outlined]="true"
+            (onClick)="copyText.emit(memory().raw_text ?? '')"
+          />
+        }
+      </span>
+    </div>
+
+    <div class="viewer__stage" [style.--ra-type-color]="part.color">
+      @if (part.attachment; as file) {
+        <ra-attachment-preview [attachment]="file" />
+      } @else if (isLink()) {
+        <div class="viewer__link">
+          <span class="viewer__link-tile" aria-hidden="true"><i [class]="part.icon"></i></span>
+          <span class="viewer__link-domain">{{ domain() }}</span>
+          @if (memory().link_preview; as page) {
+            <span class="viewer__link-title">{{ page.title }}</span>
+            @if (page.description) {
+              <span class="viewer__link-description">{{ page.description }}</span>
+            }
+          }
+          <a
+            class="viewer__link-url"
+            [href]="memory().raw_text"
+            target="_blank"
+            rel="noopener noreferrer"
+            >{{ memory().raw_text }}</a
+          >
+        </div>
+      } @else {
+        <p class="viewer__text">{{ memory().raw_text }}</p>
+      }
+    </div>
+  }
+</div>

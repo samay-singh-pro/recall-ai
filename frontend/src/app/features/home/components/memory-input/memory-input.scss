@@ -1,0 +1,71 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.memory-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 1rem 0.75rem;
+  border: 1px solid var(--ra-border-color);
+  border-radius: 1.5rem;
+  background: var(--ra-page-background);
+  box-shadow: var(--ra-shadow);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+
+  &:focus-within {
+    border-color: color-mix(in srgb, var(--p-primary-color) 50%, transparent);
+    box-shadow:
+      var(--ra-shadow),
+      0 0 0 4px color-mix(in srgb, var(--p-primary-color) 12%, transparent);
+  }
+}
+
+.memory-input--dragging {
+  border-color: var(--p-primary-color);
+  border-style: dashed;
+  background: color-mix(in srgb, var(--p-primary-color) 5%, var(--ra-page-background));
+}
+
+// The box itself is the visible frame, so the textarea's own border is hidden.
+.memory-input__text,
+.memory-input__text:enabled:focus {
+  width: 100%;
+  max-height: 14rem;
+  padding: 0.25rem;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  font-size: 1rem;
+  line-height: 1.5;
+  resize: none;
+}
+
+.memory-input__files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.memory-input__actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.memory-input__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.memory-input__error {
+  display: block;
+  margin-top: 0.75rem;
+  padding-left: 1rem;
+}

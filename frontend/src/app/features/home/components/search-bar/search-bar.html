@@ -1,0 +1,27 @@
+<p-iconfield class="search-bar" role="search">
+  <p-inputicon class="pi pi-search search-bar__icon" />
+  <input
+    #field
+    pInputText
+    class="search-bar__field"
+    placeholder="Search memories…"
+    aria-label="Search your memories"
+    enterkeyhint="search"
+    [ngModel]="draft()"
+    (ngModelChange)="draft.set($event)"
+    (keydown.enter)="submit()"
+    (keydown.escape)="clearSearch()"
+  />
+  @if (draft()) {
+    <button
+      type="button"
+      class="search-bar__clear"
+      aria-label="Clear search"
+      (click)="clearSearch()"
+    >
+      <i class="pi pi-times" aria-hidden="true"></i>
+    </button>
+  } @else {
+    <kbd class="search-bar__hint" aria-hidden="true">{{ shortcutHint() }}</kbd>
+  }
+</p-iconfield>
