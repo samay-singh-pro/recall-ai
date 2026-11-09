@@ -39,11 +39,10 @@ recall-ai/
 ```
 
 ## Working agreements
-- **This is a learning project. Assume the user knows nothing about this tech** (Python, FastAPI, databases, LangChain, Angular, AI engineering: treat all as new). The goal is that they *learn*, not that code gets added.
-  - Explain every concept, library and design choice in plain layman's language: everyday analogies, no unexplained jargon (define a term the first time it appears).
-  - Before writing code, say what we're about to build and why; after, walk through what each part does and how it fits the whole.
-  - Never dump finished code silently or skip "obvious" steps. Name the alternatives considered and why we chose this one.
-  - Check understanding at the end of a step and let the user ask questions before moving on.
+- **This is a learning project.** The user has a general overview of technology but is new to this specific stack (FastAPI, LangChain/LangGraph, AI engineering, Alembic, etc.). The goal is that they *learn*, not that code gets added.
+  - **Keep explanations short and plain** (updated 2026-11-09: the user said long explanations and history lessons are too much). Say what was done and why in a few lines; don't re-teach general basics (what a database or a hash is). Define a term only when it's specific to this stack; use an analogy only when it really helps.
+  - Never dump finished code silently. Briefly say what we're building before, and what each new piece does after. Mention a real alternative only when the choice matters.
+  - Let the user ask for more depth; don't offer it unprompted at length.
 - **Catching up in a new chat:** don't ask the user to re-explain the project. Read this file, `docs/ROADMAP.md` (what is done / next) and the Decisions section of `docs/ARCHITECTURE.md` (why things are the way they are), then run `git log` / `git status`. Summarise where we are in a few lines and propose the next small step.
 - **Keep the record current:** whenever a decision is made or a step finishes, update `docs/ROADMAP.md` and add a dated line to the Decisions section of `docs/ARCHITECTURE.md` in the same session, so the next chat can catch up from the repo alone.
 - **Work in small steps.** Never implement a long change in one go. Do one small piece, explain it, and let the user review before the next. Agree on the next step before starting it.

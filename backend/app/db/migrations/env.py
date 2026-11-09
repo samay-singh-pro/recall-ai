@@ -12,6 +12,7 @@ from app.core.config import get_settings
 from app.db.base import Base
 
 # Every module's models must be imported here so autogenerate can see their tables.
+from app.modules.auth.models import User  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:
@@ -19,18 +20,6 @@ if config.config_file_name is not None:
 
 DATABASE_URL = get_settings().database_url
 target_metadata = Base.metadata
-
-
-def run_migrations_offline() -> None:
-    """Print the SQL instead of running it (`alembic upgrade head --sql`)."""
-    context.configure(
-        url=DATABASE_URL,
-        target_metadata=target_metadata,
-        literal_binds=True,
-        render_as_batch=True,
-    )
-    with context.begin_transaction():
-        context.run_migrations()
 
 
 def run_migrations(connection: Connection) -> None:
@@ -50,7 +39,4 @@ async def run_migrations_online() -> None:
     await engine.dispose()
 
 
-if context.is_offline_mode():
-    run_migrations_offline()
-else:
-    asyncio.run(run_migrations_online())
+asyncio.run(run_migrations_online())
