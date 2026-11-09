@@ -13,6 +13,8 @@ Backend (Python 3.12+):
 ```
 cd backend
 python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+cp ../.env.example ../.env                   # then fill in the keys (one .env at the repo root)
+.venv/bin/python -m alembic upgrade head     # create/update the database tables
 .venv/bin/uvicorn app.main:app --reload      # http://localhost:8000/docs
 .venv/bin/pytest                             # tests
 .venv/bin/ruff check . && .venv/bin/mypy app # lint and types
