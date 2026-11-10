@@ -1,16 +1,13 @@
 import uuid
-from collections.abc import AsyncIterator
 from datetime import UTC, datetime
-from pathlib import Path
 
 import pytest
 from sqlalchemy import ForeignKey, text
 from sqlalchemy.exc import IntegrityError, StatementError
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.db.session import create_engine, create_session_factory
 
 pytestmark = pytest.mark.anyio
 
@@ -29,21 +26,6 @@ class SampleComment(Base):
     __tablename__ = "sample_comments"
 
     note_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("sample_notes.id"))
-
-
-@pytest.fixture
-async def engine(tmp_path: Path) -> AsyncIterator[AsyncEngine]:
-    engine = create_engine(f"sqlite+aiosqlite:///{tmp_path / 'test.db'}")
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-    yield engine
-    await engine.dispose()
-
-
-@pytest.fixture
-async def session(engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
-    async with create_session_factory(engine)() as session:
-        yield session
 
 
 async def test_saving_a_row_fills_id_and_utc_timestamps(session: AsyncSession) -> None:
