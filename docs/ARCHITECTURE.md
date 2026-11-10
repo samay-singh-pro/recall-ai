@@ -9,7 +9,7 @@ Angular (PrimeNG)  --HTTPS/JSON-->  FastAPI
                                       |-- scheduler (reminders)
                                       v
                         SQL DB (SQLite -> Postgres)   VectorStore (local -> pgvector)
-                        File storage (local dir -> object storage later)
+                        File storage (Supabase Storage, private bucket)
 ```
 
 ## Backend layout (planned)
@@ -22,7 +22,7 @@ backend/app/
   integrations/
     llm/             get_chat_model(), get_embeddings() via LangChain init_chat_model/init_embeddings
     vector/          get_vector_store() returning a LangChain VectorStore (Chroma -> PGVector)
-    file_storage/    local dir -> object storage later
+    file_storage/    Supabase Storage behind a small FileStorage interface
   modules/           each has router, service, repository, models, schemas, errors
     auth/            signup, login, refresh
     memories/        dumps + ingestion extractors (text, image, pdf, excel, link, maps)
@@ -107,4 +107,6 @@ Email+password (argon2/bcrypt), short-lived JWT access token + refresh token. An
 - 2026-11-01: The detail page's original content is one viewer with a stage of fixed height (`--ra-stage-height`) for every format, so notes, images, PDFs, sheets and links look consistent: a bar on top (name, type and size, Open/Download/Copy), the preview fitted inside, and a part switcher when a memory has text and files. On wide screens the AI summary and "Ask this memory" sit beside it as cards (CSS container query); on narrow screens they stack below.
 - 2026-11-01: Global Search (`/home/search?q=`) replaces the chat; the chat thread, `ChatMessage` and `askQuestion(question, history)` are removed. `searchMemories(query)` returns a short answer drawn only from memories (`answer.sources` points to them) plus up to five matching memories; when several match equally well, the answer has no sources and asks the user to pick from "Possible matches". The header search bar shows the current search, × clears it, and the query lives in the URL so Back returns to the results. Result cards show a thumbnail (photos) or a coloured type tile, title, type, a two-line snippet and the date; each memory type has its own colour (`MEMORY_TYPE_COLORS`), also used on the detail page.
 - 2026-11-02: The header's centre slot and the search results share one width rule (`--ra-center-width`, `--ra-center-side` in `styles.scss`): equal side columns in the header grid and a matching width on the search page keep the bar and the results the same width and centre. Below 44rem of page width both switch to filling the space. On phones the root font size is 15px so all rem-based text shrinks evenly; text boxes stay at 16px because iPhone Safari zooms into smaller ones.
-
+- 2026-11-02: Uploaded files go to a private Supabase Storage bucket (free tier), reached only from the backend with Supabase's new secret key (`SUPABASE_SECRET_KEY`, `sb_secret_...`; the legacy `service_role` key is deprecated). The browser never gets the key; files are shown through short-lived signed links. One `.env` at the repo root serves the backend, Compose and docs.
+- 2026-11-02: Until auth exists, the memories endpoints use a stand-in dev user that only works when `ENVIRONMENT=development`. All memory code still takes `user_id`, so real login replaces one dependency.
+- 2026-11-02: Database plumbing (`app/db/`): async SQLAlchemy 2 with one session per request (`get_session` dependency); the engine is created in the app factory and closed on shutdown. Every table inherits `Base`: UUID `id`, `created_at`, `updated_at` stored as UTC (`UtcDateTime` re-marks SQLite's zone-less values as UTC so the API never sends ambiguous times). Constraint names follow a fixed naming convention so migrations work on SQLite and Postgres. SQLite foreign keys are switched on per connection (off by default). Alembic reads `DATABASE_URL` from settings and uses batch mode for SQLite's limited ALTER TABLE. Tests each get a throwaway SQLite file.

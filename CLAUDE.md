@@ -39,7 +39,12 @@ recall-ai/
 ```
 
 ## Working agreements
-- **This is a learning project.** Explain every concept, library and design choice in plain layman's language (use everyday analogies, avoid jargon, or define it when unavoidable) so the user understands what they are learning, not just what was built.
+- **This is a learning project.** The user has a general overview of technology but is new to this specific stack (FastAPI, LangChain/LangGraph, AI engineering, Alembic, etc.). The goal is that they *learn*, not that code gets added.
+  - **Keep explanations short and plain** (updated 2026-11-09: the user said long explanations and history lessons are too much). Say what was done and why in a few lines; don't re-teach general basics (what a database or a hash is). Define a term only when it's specific to this stack; use an analogy only when it really helps.
+  - Never dump finished code silently. Briefly say what we're building before, and what each new piece does after. Mention a real alternative only when the choice matters.
+  - Let the user ask for more depth; don't offer it unprompted at length.
+- **Catching up in a new chat:** don't ask the user to re-explain the project. Read this file, `docs/ROADMAP.md` (what is done / next) and the Decisions section of `docs/ARCHITECTURE.md` (why things are the way they are), then run `git log` / `git status`. Summarise where we are in a few lines and propose the next small step.
+- **Keep the record current:** whenever a decision is made or a step finishes, update `docs/ROADMAP.md` and add a dated line to the Decisions section of `docs/ARCHITECTURE.md` in the same session, so the next chat can catch up from the repo alone.
 - **Work in small steps.** Never implement a long change in one go. Do one small piece, explain it, and let the user review before the next. Agree on the next step before starting it.
 - Before touching `backend/`, follow `.claude/skills/backend-conventions/SKILL.md` (architecture, naming, routes, comments).
 - Before touching `frontend/`, follow `.claude/skills/frontend-conventions/SKILL.md` (architecture, naming, routes, API access, comments).
@@ -53,4 +58,11 @@ recall-ai/
 - Confirm before anything destructive or outward-facing (deploys, pushes).
 
 ## Current status
-See `docs/ROADMAP.md`. Phase 0 (docs/context) done; Phase 1 (backend skeleton) is next.
+See `docs/ROADMAP.md` for the live checklist (it is the source of truth; this section is only a snapshot, last updated 2026-11-09).
+- Frontend: nearly all of the mock UI is built (home, memory detail, ask-this-memory, global search) against an in-browser stand-in `memories-api.ts`; no real backend calls, login or timeline yet.
+- Backend: FastAPI app + health check, config and the database foundation (async SQLAlchemy, Alembic) are done. In progress: `POST /memories` (text + files to Supabase Storage) on branch `RA-3/memory-dump`, using a dev user until auth exists. Auth, LLM factories, vector store, agent and Dockerfile are not started.
+
+## Running locally
+- Backend (from `backend/`): `.venv/bin/python -m uvicorn app.main:app --reload` -> http://localhost:8000/docs. Call the venv's python directly; `source .venv/bin/activate` does not put `uvicorn` on PATH here.
+- Frontend (from `frontend/`): `npx ng serve` -> http://localhost:4200.
+- Tests/lint: see README.
