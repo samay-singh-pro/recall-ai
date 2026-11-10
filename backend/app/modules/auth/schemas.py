@@ -26,6 +26,26 @@ class SignupRequest(BaseModel):
         return email.lower()
 
 
+class LoginRequest(BaseModel):
+    """What the browser sends to log in."""
+
+    email: EmailStr = Field(description="The email the account was created with")
+    password: str = Field(description="The account's password")
+
+    @field_validator("email")
+    @classmethod
+    def lowercase_email(cls, email: str) -> str:
+        """Match the lowercase email stored at signup."""
+        return email.lower()
+
+
+class TokenResponse(BaseModel):
+    """The two tokens a successful login returns."""
+
+    access_token: str = Field(description="Short-lived; sent with every request")
+    refresh_token: str = Field(description="Long-lived; swapped for a new access token")
+
+
 class UserResponse(BaseModel):
     """What the API returns about an account. Never includes the password hash."""
 

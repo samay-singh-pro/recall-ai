@@ -4,11 +4,13 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from app.core.security import ACCESS_TOKEN, read_user_id_from_token
 from app.main import create_app
 
 pytestmark = pytest.mark.anyio
 
 SIGNUP_URL = "/api/v1/auth/signup"
+LOGIN_URL = "/api/v1/auth/login"
 
 
 @pytest.fixture
@@ -61,3 +63,31 @@ async def test_signup_rejects_invalid_input_with_422(
     response = await client.post(SIGNUP_URL, json=payload)
 
     assert response.status_code == 422
+
+
+async def test_login_returns_tokens_that_belong_to_the_account(client: AsyncClient) -> None:
+    credentials = {"email": "asha@example.com", "password": "correct horse"}
+    signup = await client.post(SIGNUP_URL, json=credentials)
+
+    response = await client.post(LOGIN_URL, json=credentials)
+
+    assert response.status_code == 200
+    tokens = response.json()
+    assert set(tokens) == {"access_token", "refresh_token"}
+    user_id = read_user_id_from_token(tokens["access_token"], ACCESS_TOKEN)
+    assert str(user_id) == signup.json()["id"]
+
+
+async def test_login_with_a_wrong_password_returns_401_in_the_standard_error_shape(
+    client: AsyncClient,
+) -> None:
+    await client.post(SIGNUP_URL, json={"email": "asha@example.com", "password": "correct horse"})
+
+    response = await client.post(
+        LOGIN_URL, json={"email": "asha@example.com", "password": "wrong horse"}
+    )
+
+    assert response.status_code == 401
+    assert response.json() == {
+        "error": {"code": "invalid_credentials", "message": "The email or password is wrong."}
+    }
