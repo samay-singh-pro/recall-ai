@@ -9,3 +9,11 @@ class EmailAlreadyRegisteredError(DomainError):
     status_code = 409
     code = "email_already_registered"
     message = "An account with this email already exists."
+
+
+class InvalidCredentialsError(DomainError):
+    """Raised when the email or the password is wrong. Never says which one."""
+
+    status_code = 401
+    code = "invalid_credentials"
+    message = "The email or password is wrong."

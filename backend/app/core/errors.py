@@ -12,6 +12,14 @@ class DomainError(Exception):
     message = "The request could not be completed."
 
 
+class InvalidTokenError(DomainError):
+    """Raised when a login token is missing, expired, forged or of the wrong kind."""
+
+    status_code = 401
+    code = "invalid_token"
+    message = "Your login is missing or has expired. Please log in again."
+
+
 def register_error_handlers(app: FastAPI) -> None:
     """When any DomainError happens, reply with its status code and a standard JSON body."""
 
