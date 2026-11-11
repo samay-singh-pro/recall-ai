@@ -1,5 +1,7 @@
 """Database queries for users. No business rules live here."""
 
+import uuid
+
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +20,10 @@ class UserRepository:
         """Return the user with this email, or None if there is no such account."""
         result = await self._session.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
+
+    async def find_user_by_id(self, user_id: uuid.UUID) -> User | None:
+        """Return the user with this id, or None if there is no such account."""
+        return await self._session.get(User, user_id)
 
     async def add_user(self, email: str, password_hash: str) -> User:
         """Save a new user. Raises EmailAlreadyRegisteredError if the email is taken."""

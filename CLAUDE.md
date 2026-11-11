@@ -45,6 +45,7 @@ recall-ai/
   - Let the user ask for more depth; don't offer it unprompted at length.
 - **Catching up in a new chat:** don't ask the user to re-explain the project. Read this file, `docs/ROADMAP.md` (what is done / next) and the Decisions section of `docs/ARCHITECTURE.md` (why things are the way they are), then run `git log` / `git status`. Summarise where we are in a few lines and propose the next small step.
 - **Keep the record current:** whenever a decision is made or a step finishes, update `docs/ROADMAP.md` and add a dated line to the Decisions section of `docs/ARCHITECTURE.md` in the same session, so the next chat can catch up from the repo alone.
+- **Build and explain in request order, top-down** (user's rule, 2026-11-11): route first, then service, then repository, then model/migration, never bottom-up. Introduce each file as "the layer above calls this next". Same idea on the frontend: page/route, then component, then api service.
 - **Work in small steps.** Never implement a long change in one go. Do one small piece, explain it, and let the user review before the next. Agree on the next step before starting it.
 - Before touching `backend/`, follow `.claude/skills/backend-conventions/SKILL.md` (architecture, naming, routes, comments).
 - Before touching `frontend/`, follow `.claude/skills/frontend-conventions/SKILL.md` (architecture, naming, routes, API access, comments).

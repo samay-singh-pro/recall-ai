@@ -1,9 +1,12 @@
 """Business rules for accounts: signing up now, logging in later."""
 
+from app.core.errors import InvalidTokenError
 from app.core.security import (
+    ACCESS_TOKEN,
     create_access_token,
     create_refresh_token,
     hash_password,
+    read_user_id_from_token,
     verify_password,
 )
 from app.modules.auth.errors import InvalidCredentialsError
@@ -40,3 +43,13 @@ class AuthService:
             access_token=create_access_token(user.id),
             refresh_token=create_refresh_token(user.id),
         )
+
+    async def get_user_from_access_token(self, token: str) -> User:
+        """Return the user an access token belongs to. Raises InvalidTokenError if it is bad."""
+        user_id = read_user_id_from_token(token, ACCESS_TOKEN)
+        user = await self._user_repository.find_user_by_id(user_id)
+
+        # A valid token for an account that no longer exists must not let anyone in
+        if user is None:
+            raise InvalidTokenError
+        return user
