@@ -8,6 +8,7 @@ from app.core.security import (
     ACCESS_TOKEN,
     REFRESH_TOKEN,
     create_access_token,
+    create_refresh_token,
     read_user_id_from_token,
     verify_password,
 )
@@ -101,3 +102,34 @@ async def test_a_valid_token_for_a_missing_account_is_refused(session: AsyncSess
 
     with pytest.raises(InvalidTokenError):
         await service.get_user_from_access_token(token_for_nobody)
+
+
+async def test_a_refresh_token_gives_a_new_access_token_for_the_same_user(
+    session: AsyncSession,
+) -> None:
+    service = make_service(session)
+    created = await service.signup(
+        SignupRequest(email="asha@example.com", password="correct horse")
+    )
+    tokens = await service.login(LoginRequest(email="asha@example.com", password="correct horse"))
+
+    refreshed = await service.refresh_access_token(tokens.refresh_token)
+
+    assert read_user_id_from_token(refreshed.access_token, ACCESS_TOKEN) == created.id
+
+
+async def test_an_access_token_cannot_be_used_to_refresh(session: AsyncSession) -> None:
+    service = make_service(session)
+    await service.signup(SignupRequest(email="asha@example.com", password="correct horse"))
+    tokens = await service.login(LoginRequest(email="asha@example.com", password="correct horse"))
+
+    with pytest.raises(InvalidTokenError):
+        await service.refresh_access_token(tokens.access_token)
+
+
+async def test_a_refresh_token_for_a_missing_account_is_refused(session: AsyncSession) -> None:
+    service = make_service(session)
+    refresh_token_for_nobody = create_refresh_token(uuid.uuid4())
+
+    with pytest.raises(InvalidTokenError):
+        await service.refresh_access_token(refresh_token_for_nobody)

@@ -3,6 +3,7 @@
 from app.core.errors import InvalidTokenError
 from app.core.security import (
     ACCESS_TOKEN,
+    REFRESH_TOKEN,
     create_access_token,
     create_refresh_token,
     hash_password,
@@ -12,7 +13,7 @@ from app.core.security import (
 from app.modules.auth.errors import InvalidCredentialsError
 from app.modules.auth.models import User
 from app.modules.auth.repository import UserRepository
-from app.modules.auth.schemas import LoginRequest, SignupRequest, TokenResponse
+from app.modules.auth.schemas import AccessTokenResponse, LoginRequest, SignupRequest, TokenResponse
 
 
 class AuthService:
@@ -43,6 +44,19 @@ class AuthService:
             access_token=create_access_token(user.id),
             refresh_token=create_refresh_token(user.id),
         )
+
+    async def refresh_access_token(self, refresh_token: str) -> AccessTokenResponse:
+        """Swap a valid refresh token for a new access token. Raises InvalidTokenError."""
+        # 1. The token must be a genuine, unexpired refresh token
+        user_id = read_user_id_from_token(refresh_token, REFRESH_TOKEN)
+
+        # 2. Its account must still exist
+        user = await self._user_repository.find_user_by_id(user_id)
+        if user is None:
+            raise InvalidTokenError
+
+        # 3. Issue a new access token
+        return AccessTokenResponse(access_token=create_access_token(user.id))
 
     async def get_user_from_access_token(self, token: str) -> User:
         """Return the user an access token belongs to. Raises InvalidTokenError if it is bad."""

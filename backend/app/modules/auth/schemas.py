@@ -46,6 +46,18 @@ class TokenResponse(BaseModel):
     refresh_token: str = Field(description="Long-lived; swapped for a new access token")
 
 
+class RefreshRequest(BaseModel):
+    """What the browser sends to get a new access token."""
+
+    refresh_token: str = Field(description="The refresh token received at login")
+
+
+class AccessTokenResponse(BaseModel):
+    """A fresh access token."""
+
+    access_token: str = Field(description="Short-lived; sent with every request")
+
+
 class UserResponse(BaseModel):
     """What the API returns about an account. Never includes the password hash."""
 

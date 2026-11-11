@@ -12,6 +12,7 @@ pytestmark = pytest.mark.anyio
 SIGNUP_URL = "/api/v1/auth/signup"
 LOGIN_URL = "/api/v1/auth/login"
 ME_URL = "/api/v1/auth/me"
+REFRESH_URL = "/api/v1/auth/refresh"
 
 
 @pytest.fixture
@@ -129,5 +130,37 @@ async def test_me_with_a_refresh_token_returns_401(client: AsyncClient) -> None:
     response = await client.get(
         ME_URL, headers={"Authorization": f"Bearer {tokens['refresh_token']}"}
     )
+
+    assert response.status_code == 401
+
+
+async def test_refresh_returns_an_access_token_that_works(client: AsyncClient) -> None:
+    credentials = {"email": "asha@example.com", "password": "correct horse"}
+    signup = await client.post(SIGNUP_URL, json=credentials)
+    tokens = (await client.post(LOGIN_URL, json=credentials)).json()
+
+    response = await client.post(REFRESH_URL, json={"refresh_token": tokens["refresh_token"]})
+
+    assert response.status_code == 200
+    assert set(response.json()) == {"access_token"}
+    me = await client.get(
+        ME_URL, headers={"Authorization": f"Bearer {response.json()['access_token']}"}
+    )
+    assert me.json() == signup.json()
+
+
+async def test_refresh_with_an_access_token_returns_401(client: AsyncClient) -> None:
+    credentials = {"email": "asha@example.com", "password": "correct horse"}
+    await client.post(SIGNUP_URL, json=credentials)
+    tokens = (await client.post(LOGIN_URL, json=credentials)).json()
+
+    response = await client.post(REFRESH_URL, json={"refresh_token": tokens["access_token"]})
+
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "invalid_token"
+
+
+async def test_refresh_with_a_garbage_token_returns_401(client: AsyncClient) -> None:
+    response = await client.post(REFRESH_URL, json={"refresh_token": "not-a-real-token"})
 
     assert response.status_code == 401

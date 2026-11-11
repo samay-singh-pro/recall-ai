@@ -6,7 +6,14 @@ from fastapi import APIRouter, Depends
 
 from app.modules.auth.dependencies import get_auth_service, get_current_user
 from app.modules.auth.models import User
-from app.modules.auth.schemas import LoginRequest, SignupRequest, TokenResponse, UserResponse
+from app.modules.auth.schemas import (
+    AccessTokenResponse,
+    LoginRequest,
+    RefreshRequest,
+    SignupRequest,
+    TokenResponse,
+    UserResponse,
+)
 from app.modules.auth.service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -38,6 +45,20 @@ async def login(
 ) -> TokenResponse:
     """Log in with an email and password."""
     return await service.login(login_request)
+
+
+@router.post(
+    "/refresh",
+    summary="Swap a refresh token for a new access token",
+    status_code=200,
+    response_model=AccessTokenResponse,
+)
+async def refresh(
+    refresh_request: RefreshRequest,
+    service: Annotated[AuthService, Depends(get_auth_service)],
+) -> AccessTokenResponse:
+    """Get a new access token without logging in again."""
+    return await service.refresh_access_token(refresh_request.refresh_token)
 
 
 @router.get(
