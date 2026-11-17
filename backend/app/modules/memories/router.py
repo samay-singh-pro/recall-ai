@@ -1,8 +1,9 @@
-"""HTTP routes for memories. For now: save a text memory."""
+"""HTTP routes for memories: save, list, read one and delete."""
 
+import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 
 from app.modules.auth.dependencies import get_current_user
 from app.modules.auth.models import User
@@ -47,3 +48,33 @@ async def list_memories(
 ) -> MemoryListResponse:
     """Return the logged-in user's memories, newest first, one page at a time."""
     return await service.list_memories(user.id, limit, offset)
+
+
+@router.get(
+    "/{memory_id}",
+    summary="Read one memory",
+    status_code=200,
+    response_model=MemoryResponse,
+)
+async def get_memory(
+    memory_id: uuid.UUID,
+    user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[MemoryService, Depends(get_memory_service)],
+) -> MemoryResponse:
+    """Return one of the logged-in user's memories."""
+    return await service.get_memory(user.id, memory_id)
+
+
+@router.delete(
+    "/{memory_id}",
+    summary="Delete a memory",
+    status_code=204,
+)
+async def delete_memory(
+    memory_id: uuid.UUID,
+    user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[MemoryService, Depends(get_memory_service)],
+) -> Response:
+    """Delete one of the logged-in user's memories."""
+    await service.delete_memory(user.id, memory_id)
+    return Response(status_code=204)

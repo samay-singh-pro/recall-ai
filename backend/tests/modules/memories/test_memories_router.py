@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import AsyncIterator
 
 import pytest
@@ -129,3 +130,65 @@ async def test_listing_without_logging_in_returns_401(client: AsyncClient) -> No
     response = await client.get(MEMORIES_URL)
 
     assert response.status_code == 401
+
+
+async def test_a_user_can_read_one_of_their_memories(client: AsyncClient) -> None:
+    headers = await sign_up(client, "asha@example.com")
+    created = (await client.post(MEMORIES_URL, json={"content": "hello"}, headers=headers)).json()
+
+    response = await client.get(f"{MEMORIES_URL}/{created['id']}", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json() == created
+
+
+async def test_reading_an_unknown_memory_returns_404_in_the_standard_error_shape(
+    client: AsyncClient,
+) -> None:
+    headers = await sign_up(client, "asha@example.com")
+
+    response = await client.get(f"{MEMORIES_URL}/{uuid.uuid4()}", headers=headers)
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "error": {"code": "memory_not_found", "message": "This memory was not found."}
+    }
+
+
+async def test_another_users_memory_cannot_be_read_or_deleted(client: AsyncClient) -> None:
+    asha = await sign_up(client, "asha@example.com")
+    ravi = await sign_up(client, "ravi@example.com")
+    created = (await client.post(MEMORIES_URL, json={"content": "private"}, headers=asha)).json()
+    url = f"{MEMORIES_URL}/{created['id']}"
+
+    assert (await client.get(url, headers=ravi)).status_code == 404
+    assert (await client.delete(url, headers=ravi)).status_code == 404
+    # Ravi's failed delete must not have removed Asha's memory.
+    assert (await client.get(url, headers=asha)).status_code == 200
+
+
+async def test_deleting_a_memory_removes_it(client: AsyncClient) -> None:
+    headers = await sign_up(client, "asha@example.com")
+    created = (await client.post(MEMORIES_URL, json={"content": "bye"}, headers=headers)).json()
+    url = f"{MEMORIES_URL}/{created['id']}"
+
+    response = await client.delete(url, headers=headers)
+
+    assert response.status_code == 204
+    assert (await client.get(url, headers=headers)).status_code == 404
+    assert (await client.get(MEMORIES_URL, headers=headers)).json()["total"] == 0
+
+
+async def test_deleting_an_unknown_memory_returns_404(client: AsyncClient) -> None:
+    headers = await sign_up(client, "asha@example.com")
+
+    response = await client.delete(f"{MEMORIES_URL}/{uuid.uuid4()}", headers=headers)
+
+    assert response.status_code == 404
+
+
+async def test_reading_or_deleting_without_logging_in_returns_401(client: AsyncClient) -> None:
+    url = f"{MEMORIES_URL}/{uuid.uuid4()}"
+
+    assert (await client.get(url)).status_code == 401
+    assert (await client.delete(url)).status_code == 401

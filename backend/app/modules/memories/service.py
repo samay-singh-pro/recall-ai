@@ -2,6 +2,7 @@
 
 import uuid
 
+from app.modules.memories.errors import MemoryNotFoundError
 from app.modules.memories.repository import MemoryRepository
 from app.modules.memories.schemas import MemoryListResponse, MemoryResponse
 
@@ -30,3 +31,16 @@ class MemoryService:
             limit=limit,
             offset=offset,
         )
+
+    async def get_memory(self, user_id: uuid.UUID, memory_id: uuid.UUID) -> MemoryResponse:
+        """Return one of this user's memories. Raises MemoryNotFoundError if it is not theirs."""
+        memory = await self._memory_repository.find_memory(user_id, memory_id)
+        if memory is None:
+            raise MemoryNotFoundError
+        return MemoryResponse.model_validate(memory)
+
+    async def delete_memory(self, user_id: uuid.UUID, memory_id: uuid.UUID) -> None:
+        """Delete one of this user's memories. Raises MemoryNotFoundError if it is not theirs."""
+        was_deleted = await self._memory_repository.remove_memory(user_id, memory_id)
+        if not was_deleted:
+            raise MemoryNotFoundError
