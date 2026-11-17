@@ -10,6 +10,7 @@ from app.core.errors import register_error_handlers
 from app.db.session import create_engine, create_session_factory
 from app.modules.auth.router import router as auth_router
 from app.modules.health.router import router as health_router
+from app.modules.memories.router import router as memories_router
 
 
 def create_app() -> FastAPI:
@@ -28,6 +29,7 @@ def create_app() -> FastAPI:
     register_error_handlers(app)
     app.include_router(health_router, prefix=settings.api_prefix)
     app.include_router(auth_router, prefix=settings.api_prefix)
+    app.include_router(memories_router, prefix=settings.api_prefix)
     return app
 
 
