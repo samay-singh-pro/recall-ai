@@ -8,10 +8,10 @@ from app.modules.auth.dependencies import get_auth_service, get_current_user
 from app.modules.auth.models import User
 from app.modules.auth.schemas import (
     AccessTokenResponse,
+    AuthResponse,
     LoginRequest,
     RefreshRequest,
     SignupRequest,
-    TokenResponse,
     UserResponse,
 )
 from app.modules.auth.service import AuthService
@@ -21,15 +21,15 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post(
     "/signup",
-    summary="Create an account",
+    summary="Create an account and log in",
     status_code=201,
-    response_model=UserResponse,
+    response_model=AuthResponse,
 )
 async def signup(
     signup_request: SignupRequest,
     service: Annotated[AuthService, Depends(get_auth_service)],
-) -> User:
-    """Sign up with an email and password."""
+) -> AuthResponse:
+    """Sign up with a name, an email and a password; you are logged in straight away."""
     return await service.signup(signup_request)
 
 
@@ -37,12 +37,12 @@ async def signup(
     "/login",
     summary="Log in and get tokens",
     status_code=200,
-    response_model=TokenResponse,
+    response_model=AuthResponse,
 )
 async def login(
     login_request: LoginRequest,
     service: Annotated[AuthService, Depends(get_auth_service)],
-) -> TokenResponse:
+) -> AuthResponse:
     """Log in with an email and password."""
     return await service.login(login_request)
 

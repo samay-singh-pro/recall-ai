@@ -4,7 +4,7 @@
   </aside>
 
   <div class="home__main">
-    <ra-app-header [userName]="userName" (menuToggle)="isPanelOpen.set(true)">
+    <ra-app-header [userName]="userName()" (menuToggle)="isPanelOpen.set(true)" (logout)="logout()">
       <ra-search-bar [query]="searchQuery()" (search)="search($event)" (clear)="clearSearch()" />
     </ra-app-header>
 

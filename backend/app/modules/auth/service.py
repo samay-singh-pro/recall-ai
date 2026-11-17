@@ -1,4 +1,4 @@
-"""Business rules for accounts: signing up now, logging in later."""
+"""Business rules for accounts: signing up, logging in, refreshing and who-am-I."""
 
 from app.core.errors import InvalidTokenError
 from app.core.security import (
@@ -13,7 +13,13 @@ from app.core.security import (
 from app.modules.auth.errors import InvalidCredentialsError
 from app.modules.auth.models import User
 from app.modules.auth.repository import UserRepository
-from app.modules.auth.schemas import AccessTokenResponse, LoginRequest, SignupRequest, TokenResponse
+from app.modules.auth.schemas import (
+    AccessTokenResponse,
+    AuthResponse,
+    LoginRequest,
+    SignupRequest,
+    UserResponse,
+)
 
 
 class AuthService:
@@ -22,15 +28,18 @@ class AuthService:
     def __init__(self, user_repository: UserRepository) -> None:
         self._user_repository = user_repository
 
-    async def signup(self, request: SignupRequest) -> User:
-        """Create an account. Raises EmailAlreadyRegisteredError if the email is taken."""
+    async def signup(self, request: SignupRequest) -> AuthResponse:
+        """Create an account and log it in. Raises EmailAlreadyRegisteredError if email is taken."""
         # 1. Never store the password itself, only its hash
         password_hash = hash_password(request.password)
 
         # 2. Save; the repository refuses a duplicate email
-        return await self._user_repository.add_user(request.email, password_hash)
+        user = await self._user_repository.add_user(request.name, request.email, password_hash)
 
-    async def login(self, request: LoginRequest) -> TokenResponse:
+        # 3. Log the new user in straight away
+        return self._build_auth_response(user)
+
+    async def login(self, request: LoginRequest) -> AuthResponse:
         """Check the email and password, then issue tokens. Raises InvalidCredentialsError."""
         # 1. Find the user and check the password
         user = await self._user_repository.find_user_by_email(request.email)
@@ -40,10 +49,7 @@ class AuthService:
             raise InvalidCredentialsError
 
         # 2. Hand out the tokens
-        return TokenResponse(
-            access_token=create_access_token(user.id),
-            refresh_token=create_refresh_token(user.id),
-        )
+        return self._build_auth_response(user)
 
     async def refresh_access_token(self, refresh_token: str) -> AccessTokenResponse:
         """Swap a valid refresh token for a new access token. Raises InvalidTokenError."""
@@ -67,3 +73,11 @@ class AuthService:
         if user is None:
             raise InvalidTokenError
         return user
+
+    def _build_auth_response(self, user: User) -> AuthResponse:
+        """Create the tokens for a user and pair them with the user's public details."""
+        return AuthResponse(
+            access_token=create_access_token(user.id),
+            refresh_token=create_refresh_token(user.id),
+            user=UserResponse.model_validate(user),
+        )

@@ -11,7 +11,7 @@ pytestmark = pytest.mark.anyio
 
 async def test_an_added_user_can_be_found_by_email(session: AsyncSession) -> None:
     repository = UserRepository(session)
-    added = await repository.add_user("asha@example.com", "hash-1")
+    added = await repository.add_user("Asha", "asha@example.com", "hash-1")
     session.expunge_all()
 
     found = await repository.find_user_by_email("asha@example.com")
@@ -23,7 +23,7 @@ async def test_an_added_user_can_be_found_by_email(session: AsyncSession) -> Non
 
 async def test_finding_an_unknown_email_returns_none(session: AsyncSession) -> None:
     repository = UserRepository(session)
-    await repository.add_user("asha@example.com", "hash-1")
+    await repository.add_user("Asha", "asha@example.com", "hash-1")
 
     assert await repository.find_user_by_email("someone-else@example.com") is None
 
@@ -32,10 +32,10 @@ async def test_adding_a_taken_email_fails_and_keeps_the_first_account(
     session: AsyncSession,
 ) -> None:
     repository = UserRepository(session)
-    await repository.add_user("asha@example.com", "first-hash")
+    await repository.add_user("Asha", "asha@example.com", "first-hash")
 
     with pytest.raises(EmailAlreadyRegisteredError):
-        await repository.add_user("asha@example.com", "second-hash")
+        await repository.add_user("Asha", "asha@example.com", "second-hash")
 
     # The session is still usable after the failure, and the original account is untouched.
     found = await repository.find_user_by_email("asha@example.com")
@@ -45,7 +45,7 @@ async def test_adding_a_taken_email_fails_and_keeps_the_first_account(
 
 async def test_a_user_can_be_found_by_id(session: AsyncSession) -> None:
     repository = UserRepository(session)
-    added = await repository.add_user("asha@example.com", "hash-1")
+    added = await repository.add_user("Asha", "asha@example.com", "hash-1")
     session.expunge_all()
 
     found = await repository.find_user_by_id(added.id)

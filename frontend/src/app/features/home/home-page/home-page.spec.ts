@@ -4,6 +4,7 @@ import { Router, provideRouter, withComponentInputBinding } from '@angular/route
 import { RouterTestingHarness } from '@angular/router/testing';
 import { of } from 'rxjs';
 
+import { AuthSession } from '../../../core/auth/auth-session';
 import { MemoryPanel } from '../components/memory-panel/memory-panel';
 import { SearchBar } from '../components/search-bar/search-bar';
 import { HOME_ROUTES } from '../home.routes';
@@ -46,6 +47,12 @@ describe('HomePage', () => {
       ],
     });
 
+    localStorage.clear();
+    TestBed.inject(AuthSession).saveLogin(
+      { access_token: 'access-1', refresh_token: 'refresh-1' },
+      'Samay',
+    );
+
     harness = await RouterTestingHarness.create('/home');
     compiled = harness.fixture.nativeElement as HTMLElement;
   });
@@ -63,6 +70,21 @@ describe('HomePage', () => {
   function currentUrl(): string {
     return TestBed.inject(Router).url;
   }
+
+  it('shows the logged-in name in the header', () => {
+    expect(compiled.querySelector('.app-header__user-name')?.textContent).toContain('Samay');
+  });
+
+  it('logs out from the header: forgets the login and goes to the login page', async () => {
+    const session = TestBed.inject(AuthSession);
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+
+    compiled.querySelector<HTMLButtonElement>('button[aria-label="Log out"]')!.click();
+    await harness.fixture.whenStable();
+
+    expect(session.isLoggedIn()).toBe(false);
+    expect(navigate).toHaveBeenCalledWith('/login');
+  });
 
   it('lists saved memories beside the add box', () => {
     expect(compiled.querySelector('.home__sidebar')?.textContent).toContain('Interstellar');

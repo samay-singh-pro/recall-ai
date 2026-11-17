@@ -7,7 +7,7 @@ Status: [x] done, [ ] todo, [~] in progress
   - [x] FastAPI app, config, health check
   - [x] Database foundation: SQLAlchemy (async), Alembic, shared table base
   - [~] Save a dump: `POST /memories` (text + files to Supabase Storage), ahead of auth with a dev user
-  - [x] Auth backend (`users` table + migration, schemas, repository, Argon2 hashing, JWT access/refresh tokens, service, `POST /auth/signup`, `POST /auth/login`, `POST /auth/refresh`, `GET /auth/me` and the `get_current_user` guard). Angular login/signup screens still to do
+  - [x] Auth backend (`users` table with a display `name` + migrations, schemas, repository, Argon2 hashing, JWT access/refresh tokens, service, `POST /auth/signup` and `POST /auth/login` (both return tokens + user), `POST /auth/refresh`, `GET /auth/me` and the `get_current_user` guard)
   - [ ] LLM factories, Dockerfile
 - [ ] **Phase 2** — Text dumps: memories CRUD, embeddings, LangChain VectorStore (Chroma), search, LangGraph chat agent (core learning loop)
 - [ ] **Phase 3** — File/link ingestion: image (vision/OCR), PDF, Excel, URL, Maps link
@@ -17,4 +17,6 @@ Status: [x] done, [ ] todo, [~] in progress
     - [x] Memory Detail page (original content per format, summary, rename, copy, download, delete)
     - [x] Ask this memory + Save answer
     - [x] Global Search screen (replaces the chat)
+  - [~] Auth screens (dev server on port 4600): login and sign up pages (shared `AuthShell` layout), `AuthApi`, `AuthSession` (tokens + name in localStorage), `authGuard` / `guestGuard`, name asked at signup (shown in the header and greeting) and Log out in the header
+    - [ ] Auth interceptor: attach the access token to requests and refresh it on a 401 (needed once Home talks to the real backend)
 - [ ] **Phase 6** — Tests, CI, Docker Compose, deploy to free host, pgvector switch

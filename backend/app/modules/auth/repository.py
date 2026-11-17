@@ -25,9 +25,9 @@ class UserRepository:
         """Return the user with this id, or None if there is no such account."""
         return await self._session.get(User, user_id)
 
-    async def add_user(self, email: str, password_hash: str) -> User:
+    async def add_user(self, name: str, email: str, password_hash: str) -> User:
         """Save a new user. Raises EmailAlreadyRegisteredError if the email is taken."""
-        user = User(email=email, password_hash=password_hash)
+        user = User(name=name, email=email, password_hash=password_hash)
         self._session.add(user)
         try:
             await self._session.commit()

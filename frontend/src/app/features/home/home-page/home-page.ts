@@ -8,6 +8,7 @@ import { Drawer } from 'primeng/drawer';
 import { Toast } from 'primeng/toast';
 import { filter, map } from 'rxjs';
 
+import { AuthSession } from '../../../core/auth/auth-session';
 import { AppHeader } from '../../../layout/app-header/app-header';
 import { MemoryPanel } from '../components/memory-panel/memory-panel';
 import { SearchBar } from '../components/search-bar/search-bar';
@@ -15,9 +16,8 @@ import { MemoriesApi } from '../memories-api';
 import { Memory } from '../memory';
 import { MemoryLibrary } from '../memory-library';
 
-// Shown until login exists.
-const GUEST_NAME = 'Guest';
 const SEARCH_URL = '/home/search';
+const LOGIN_URL = '/login';
 
 /**
  * The frame of the main screen: the memories sidebar and the header with global search.
@@ -45,10 +45,11 @@ export class HomePage {
   private readonly memoriesApi = inject(MemoriesApi);
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
+  private readonly session = inject(AuthSession);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly library = inject(MemoryLibrary);
-  protected readonly userName = GUEST_NAME;
+  protected readonly userName = this.session.displayName;
   protected readonly isPanelOpen = signal(false);
   // What the header search bar shows: the words of the search on screen, if any.
   protected readonly searchQuery = toSignal(
@@ -68,6 +69,12 @@ export class HomePage {
   /** Clearing the bar on the search screen goes back to its example searches. */
   protected clearSearch(): void {
     if (this.router.url.startsWith(SEARCH_URL)) void this.router.navigateByUrl(SEARCH_URL);
+  }
+
+  /** Log out: forget the login and go to the login page. */
+  protected logout(): void {
+    this.session.clear();
+    void this.router.navigateByUrl(LOGIN_URL);
   }
 
   /** Go to the add box. */

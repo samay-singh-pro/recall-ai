@@ -36,6 +36,15 @@ describe('AppHeader', () => {
     expect(theme.isDark()).toBe(!wasDark);
   });
 
+  it('asks to log out when the log out button is pressed', () => {
+    const logout = vi.fn();
+    fixture.componentInstance.logout.subscribe(logout);
+
+    compiled.querySelector<HTMLButtonElement>('button[aria-label="Log out"]')?.click();
+
+    expect(logout).toHaveBeenCalledOnce();
+  });
+
   it('asks to open the memories panel when the menu button is pressed', () => {
     const menuToggle = vi.fn();
     fixture.componentInstance.menuToggle.subscribe(menuToggle);

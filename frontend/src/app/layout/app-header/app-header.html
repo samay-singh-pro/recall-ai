@@ -30,5 +30,15 @@
       <p-avatar [label]="userInitial()" shape="circle" />
       <span class="app-header__user-name">{{ userName() }}</span>
     </div>
+    <p-button
+      icon="pi pi-sign-out"
+      severity="secondary"
+      [text]="true"
+      [rounded]="true"
+      ariaLabel="Log out"
+      pTooltip="Log out"
+      tooltipPosition="bottom"
+      (onClick)="logout.emit()"
+    />
   </div>
 </p-toolbar>

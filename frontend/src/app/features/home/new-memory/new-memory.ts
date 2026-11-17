@@ -10,13 +10,12 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MessageService } from 'primeng/api';
 
+import { AuthSession } from '../../../core/auth/auth-session';
 import { MemoryInput } from '../components/memory-input/memory-input';
 import { MemoriesApi } from '../memories-api';
 import { MemoryDraft } from '../memory-draft';
 import { MemoryLibrary } from '../memory-library';
 
-// Shown until login exists.
-const GUEST_NAME = 'Guest';
 const NOON_HOUR = 12;
 const EVENING_HOUR = 18;
 
@@ -32,12 +31,13 @@ export class NewMemory {
   private readonly memoriesApi = inject(MemoriesApi);
   private readonly library = inject(MemoryLibrary);
   private readonly messageService = inject(MessageService);
+  private readonly session = inject(AuthSession);
   private readonly destroyRef = inject(DestroyRef);
   private readonly memoryInput = viewChild.required(MemoryInput);
 
   protected readonly isSaving = signal(false);
   protected readonly greeting = computed(
-    () => `${greetingForHour(new Date().getHours())}, ${GUEST_NAME}`,
+    () => `${greetingForHour(new Date().getHours())}, ${this.session.displayName()}`,
   );
 
   /** Save what's in the add box as one memory, then confirm and refresh the list. */
