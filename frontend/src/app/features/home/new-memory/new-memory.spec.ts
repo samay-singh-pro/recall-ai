@@ -3,6 +3,7 @@ import { By } from '@angular/platform-browser';
 import { MessageService } from 'primeng/api';
 import { of, throwError } from 'rxjs';
 
+import { AuthSession } from '../../../core/auth/auth-session';
 import { MemoryInput } from '../components/memory-input/memory-input';
 import { MemoriesApi } from '../memories-api';
 import { Memory } from '../memory';
@@ -29,6 +30,12 @@ describe('NewMemory', () => {
       ],
     }).compileComponents();
 
+    localStorage.clear();
+    TestBed.inject(AuthSession).saveLogin(
+      { access_token: 'access-1', refresh_token: 'refresh-1' },
+      'Asha',
+    );
+
     fixture = TestBed.createComponent(NewMemory);
     await fixture.whenStable();
     compiled = fixture.nativeElement as HTMLElement;
@@ -40,9 +47,9 @@ describe('NewMemory', () => {
     return fixture.whenStable();
   }
 
-  it('greets the user', () => {
+  it('greets the logged-in user by name', () => {
     expect(compiled.querySelector('h1')?.textContent).toMatch(
-      /Good (morning|afternoon|evening), Guest/,
+      /Good (morning|afternoon|evening), Asha/,
     );
   });
 

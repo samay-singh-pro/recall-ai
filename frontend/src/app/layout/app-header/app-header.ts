@@ -32,6 +32,7 @@ export class AppHeader {
 
   readonly userName = input.required<string>();
   readonly menuToggle = output<void>();
+  readonly logout = output<void>();
 
   protected readonly toolbarTokens = TOOLBAR_TOKENS;
   protected readonly userInitial = computed(() => this.userName().charAt(0).toUpperCase());
