@@ -74,3 +74,58 @@ async def test_saving_without_logging_in_returns_401(client: AsyncClient) -> Non
     response = await client.post(MEMORIES_URL, json={"content": "hello"})
 
     assert response.status_code == 401
+
+
+async def test_list_returns_only_my_memories_newest_first_with_the_total(
+    client: AsyncClient,
+) -> None:
+    asha = await sign_up(client, "asha@example.com")
+    ravi = await sign_up(client, "ravi@example.com")
+    for content in ["first", "second", "third"]:
+        await client.post(MEMORIES_URL, json={"content": content}, headers=asha)
+    await client.post(MEMORIES_URL, json={"content": "Ravi's secret"}, headers=ravi)
+
+    response = await client.get(MEMORIES_URL, headers=asha)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [item["content"] for item in body["items"]] == ["third", "second", "first"]
+    assert set(body["items"][0]) == {"id", "content", "created_at"}
+    assert (body["total"], body["limit"], body["offset"]) == (3, 20, 0)
+
+
+async def test_list_pages_with_limit_and_offset(client: AsyncClient) -> None:
+    headers = await sign_up(client, "asha@example.com")
+    for content in ["one", "two", "three", "four", "five"]:
+        await client.post(MEMORIES_URL, json={"content": content}, headers=headers)
+
+    response = await client.get(MEMORIES_URL, params={"limit": 2, "offset": 2}, headers=headers)
+
+    body = response.json()
+    assert [item["content"] for item in body["items"]] == ["three", "two"]
+    assert (body["total"], body["limit"], body["offset"]) == (5, 2, 2)
+
+
+async def test_list_for_a_new_user_is_empty(client: AsyncClient) -> None:
+    headers = await sign_up(client, "asha@example.com")
+
+    response = await client.get(MEMORIES_URL, headers=headers)
+
+    assert response.json() == {"items": [], "total": 0, "limit": 20, "offset": 0}
+
+
+@pytest.mark.parametrize("params", [{"limit": 0}, {"limit": 101}, {"offset": -1}])
+async def test_list_with_a_bad_limit_or_offset_returns_422(
+    client: AsyncClient, params: dict[str, int]
+) -> None:
+    headers = await sign_up(client, "asha@example.com")
+
+    response = await client.get(MEMORIES_URL, params=params, headers=headers)
+
+    assert response.status_code == 422
+
+
+async def test_listing_without_logging_in_returns_401(client: AsyncClient) -> None:
+    response = await client.get(MEMORIES_URL)
+
+    assert response.status_code == 401

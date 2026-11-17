@@ -6,7 +6,7 @@ Status: [x] done, [ ] todo, [~] in progress
 - [~] **Phase 1** — Backend skeleton: FastAPI app, config, SQLAlchemy + Alembic, auth (signup/login/JWT), LLM factories (LangChain), Dockerfile, health check, tests
   - [x] FastAPI app, config, health check
   - [x] Database foundation: SQLAlchemy (async), Alembic, shared table base
-  - [~] Save a dump: `POST /memories` for text is done (logged-in user, `memories` table + migration); still todo: list / get / delete, files to Supabase Storage
+  - [~] Save a dump: `POST /memories` and `GET /memories` (paged list) for text are done; still todo: get one / delete, files to Supabase Storage
   - [x] Auth backend (`users` table with a display `name` + migrations, schemas, repository, Argon2 hashing, JWT access/refresh tokens, service, `POST /auth/signup` and `POST /auth/login` (both return tokens + user), `POST /auth/refresh`, `GET /auth/me` and the `get_current_user` guard)
   - [ ] LLM factories, Dockerfile
 - [ ] **Phase 2** — Text dumps: memories CRUD, embeddings, LangChain VectorStore (Chroma), search, LangGraph chat agent (core learning loop)

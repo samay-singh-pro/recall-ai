@@ -28,3 +28,12 @@ class MemoryResponse(BaseModel):
     id: uuid.UUID
     content: str
     created_at: datetime
+
+
+class MemoryListResponse(BaseModel):
+    """One page of the user's memories, plus how many they have in total."""
+
+    items: list[MemoryResponse] = Field(description="This page's memories, newest first")
+    total: int = Field(description="How many memories the user has in all")
+    limit: int = Field(description="The page size that was asked for")
+    offset: int = Field(description="How many memories were skipped")
