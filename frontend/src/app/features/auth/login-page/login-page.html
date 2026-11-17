@@ -1,0 +1,52 @@
+<ra-auth-shell>
+  <h1 class="auth-form__title">Welcome back</h1>
+  <p class="auth-form__subtitle">Log in to pick up where you left off.</p>
+
+  <form class="auth-form__form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="auth-form__field">
+      <label for="login-email">Email</label>
+      <input
+        pInputText
+        pSize="large"
+        id="login-email"
+        type="email"
+        formControlName="email"
+        autocomplete="email"
+        placeholder="you@example.com"
+        fluid
+      />
+      @if (hasSubmitted() && email.hasError('required')) {
+        <p-message severity="error" size="small" variant="simple">Enter your email.</p-message>
+      } @else if (email.hasError('email') && showFormatError(email)) {
+        <p-message severity="error" size="small" variant="simple">
+          Enter a valid email address.
+        </p-message>
+      }
+    </div>
+
+    <div class="auth-form__field">
+      <label for="login-password">Password</label>
+      <p-password
+        inputId="login-password"
+        size="large"
+        formControlName="password"
+        autocomplete="current-password"
+        placeholder="Your password"
+        [feedback]="false"
+        [toggleMask]="true"
+        fluid
+      />
+      @if (hasSubmitted() && password.hasError('required')) {
+        <p-message severity="error" size="small" variant="simple">Enter your password.</p-message>
+      }
+    </div>
+
+    @if (errorMessage(); as message) {
+      <p-message severity="error">{{ message }}</p-message>
+    }
+
+    <p-button type="submit" label="Log in" size="large" [loading]="isSubmitting()" fluid />
+  </form>
+
+  <p class="auth-form__switch">New here? <a routerLink="/signup">Create an account</a></p>
+</ra-auth-shell>

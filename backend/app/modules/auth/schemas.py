@@ -2,16 +2,25 @@
 
 import uuid
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints, field_validator
+
+from app.modules.auth.models import NAME_MAX_LENGTH
 
 PASSWORD_MIN_LENGTH = 8
 PASSWORD_MAX_LENGTH = 128
+
+# Spaces at both ends are removed before the length is checked, so "   " counts as empty.
+Name = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=NAME_MAX_LENGTH)
+]
 
 
 class SignupRequest(BaseModel):
     """What the browser sends to create an account."""
 
+    name: Name = Field(description="What the app should call the user; need not be unique")
     email: EmailStr = Field(description="Used to log in; stored in lowercase")
     password: str = Field(
         min_length=PASSWORD_MIN_LENGTH,
@@ -39,13 +48,6 @@ class LoginRequest(BaseModel):
         return email.lower()
 
 
-class TokenResponse(BaseModel):
-    """The two tokens a successful login returns."""
-
-    access_token: str = Field(description="Short-lived; sent with every request")
-    refresh_token: str = Field(description="Long-lived; swapped for a new access token")
-
-
 class RefreshRequest(BaseModel):
     """What the browser sends to get a new access token."""
 
@@ -64,5 +66,14 @@ class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    name: str
     email: str
     created_at: datetime
+
+
+class AuthResponse(BaseModel):
+    """What signup and login return: the two tokens and who they belong to."""
+
+    access_token: str = Field(description="Short-lived; sent with every request")
+    refresh_token: str = Field(description="Long-lived; swapped for a new access token")
+    user: UserResponse = Field(description="The account that was created or logged in")

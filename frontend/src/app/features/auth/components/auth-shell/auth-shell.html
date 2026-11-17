@@ -1,0 +1,40 @@
+<div class="auth-shell">
+  <aside class="auth-shell__brand">
+    <div class="auth-shell__name">
+      <span class="auth-shell__logo" aria-hidden="true"><i class="pi pi-sparkles"></i></span>
+      Recall AI
+    </div>
+
+    <div class="auth-shell__pitch">
+      <h2 class="auth-shell__headline">Your second brain.</h2>
+      <p class="auth-shell__tagline">
+        Dump anything now. Find it in seconds, whenever you need it.
+      </p>
+      <ul class="auth-shell__points">
+        <li>
+          <i class="pi pi-inbox" aria-hidden="true"></i>
+          <span>Save notes, photos, PDFs, spreadsheets and links</span>
+        </li>
+        <li>
+          <i class="pi pi-search" aria-hidden="true"></i>
+          <span>Ask in plain language, like "the dress link from last week"</span>
+        </li>
+        <li>
+          <i class="pi pi-lock" aria-hidden="true"></i>
+          <span>Private to you: only you can see your memories</span>
+        </li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="auth-shell__content">
+    <!-- The brand panel is hidden on narrow screens, so the name moves above the form. -->
+    <div class="auth-shell__name auth-shell__name--compact">
+      <span class="auth-shell__logo" aria-hidden="true"><i class="pi pi-sparkles"></i></span>
+      Recall AI
+    </div>
+    <div class="auth-shell__panel">
+      <ng-content />
+    </div>
+  </main>
+</div>

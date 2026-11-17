@@ -1,0 +1,38 @@
+// Form styles shared by the login and sign up pages (each page pulls this in with @use).
+.auth-form__title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.auth-form__subtitle {
+  margin: 0.5rem 0 1.75rem;
+  color: var(--p-text-muted-color);
+}
+
+.auth-form__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.auth-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  label {
+    font-weight: 500;
+  }
+}
+
+.auth-form__hint {
+  color: var(--p-text-muted-color);
+}
+
+.auth-form__switch {
+  margin: 1.5rem 0 0;
+  text-align: center;
+  color: var(--p-text-muted-color);
+}
