@@ -18,5 +18,5 @@ Status: [x] done, [ ] todo, [~] in progress
     - [x] Ask this memory + Save answer
     - [x] Global Search screen (replaces the chat)
   - [~] Auth screens (dev server on port 4600): login and sign up pages (shared `AuthShell` layout), `AuthApi`, `AuthSession` (tokens + name in localStorage), `authGuard` / `guestGuard`, name asked at signup (shown in the header and greeting) and Log out in the header
-    - [ ] Auth interceptor: attach the access token to requests and refresh it on a 401 (needed once Home talks to the real backend)
+    - [x] Auth interceptor: attaches the access token to backend requests and refreshes it on a 401 (needed once Home talks to the real backend)
 - [ ] **Phase 6** — Tests, CI, Docker Compose, deploy to free host, pgvector switch

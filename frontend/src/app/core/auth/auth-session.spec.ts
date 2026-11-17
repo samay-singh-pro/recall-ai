@@ -37,6 +37,31 @@ describe('AuthSession', () => {
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).toEqual({ ...TOKENS, name: 'Samay' });
   });
 
+  it('swaps in a new access token and keeps the refresh token and the name', () => {
+    const session = TestBed.inject(AuthSession);
+    session.saveLogin(TOKENS, 'Samay');
+
+    session.saveAccessToken('access-2');
+
+    expect(session.accessToken()).toBe('access-2');
+    expect(session.refreshToken()).toBe('refresh-1');
+    expect(session.displayName()).toBe('Samay');
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).toEqual({
+      access_token: 'access-2',
+      refresh_token: 'refresh-1',
+      name: 'Samay',
+    });
+  });
+
+  it('ignores a new access token when nobody is logged in', () => {
+    const session = TestBed.inject(AuthSession);
+
+    session.saveAccessToken('access-2');
+
+    expect(session.isLoggedIn()).toBe(false);
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
   it('is still logged in after a page refresh, because it reads the saved login', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...TOKENS, name: 'Samay' }));
 
