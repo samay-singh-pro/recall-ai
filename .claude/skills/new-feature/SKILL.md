@@ -55,12 +55,15 @@ Then give the reasoning:
 
 Prefer the simplest design that meets today's need without blocking tomorrow's. Do not build for imagined future requirements. Share the flow with the user in plain language and wait for a go-ahead on anything non-trivial.
 
-## 5. Build in this order
-1. Models and migration (if tables change).
-2. Schemas and domain errors.
+## 5. Build in this order: the way a request travels (top-down)
+The user wants to follow the flow of a request, so start where it enters and go one layer deeper each step (decided 2026-11-11):
+1. Router (thin: parse, call service, respond) with the request and response schemas it uses, registered in `main.py` only if it is a new router.
+2. Service (business rules) and the domain errors it raises.
 3. Repository (`user_id` required).
-4. Service (business rules).
-5. Router (thin: parse, call service, respond), registered in `main.py` only if it is a new router.
+4. Model and migration (if tables change).
+5. Tests alongside each step. Introduce each file as "the previous layer calls this next".
+
+Layers deeper than the one just written may not exist yet, so say what is still missing and run the tests once the path is complete.
 
 For frontend work the order is: models (types matching the backend schemas), then `<feature>.api.ts`, then components, then the page and its route. A frontend change that needs a new or changed backend endpoint is designed together with it in step 4.
 

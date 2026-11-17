@@ -1,22 +1,22 @@
-"""HTTP routes for accounts: signup now, login and refresh later."""
+"""HTTP routes for accounts: signup, login and who-am-I; refresh comes later."""
 
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_session
+from app.modules.auth.dependencies import get_auth_service, get_current_user
 from app.modules.auth.models import User
-from app.modules.auth.repository import UserRepository
-from app.modules.auth.schemas import LoginRequest, SignupRequest, TokenResponse, UserResponse
+from app.modules.auth.schemas import (
+    AccessTokenResponse,
+    LoginRequest,
+    RefreshRequest,
+    SignupRequest,
+    TokenResponse,
+    UserResponse,
+)
 from app.modules.auth.service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-
-def get_auth_service(session: Annotated[AsyncSession, Depends(get_session)]) -> AuthService:
-    """FastAPI dependency: build the auth service on this request's database session."""
-    return AuthService(UserRepository(session))
 
 
 @router.post(
@@ -45,3 +45,28 @@ async def login(
 ) -> TokenResponse:
     """Log in with an email and password."""
     return await service.login(login_request)
+
+
+@router.post(
+    "/refresh",
+    summary="Swap a refresh token for a new access token",
+    status_code=200,
+    response_model=AccessTokenResponse,
+)
+async def refresh(
+    refresh_request: RefreshRequest,
+    service: Annotated[AuthService, Depends(get_auth_service)],
+) -> AccessTokenResponse:
+    """Get a new access token without logging in again."""
+    return await service.refresh_access_token(refresh_request.refresh_token)
+
+
+@router.get(
+    "/me",
+    summary="Get the logged-in account",
+    status_code=200,
+    response_model=UserResponse,
+)
+async def read_current_user(user: Annotated[User, Depends(get_current_user)]) -> User:
+    """Return the account the access token belongs to."""
+    return user
