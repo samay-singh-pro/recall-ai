@@ -1,36 +1,151 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Observable, firstValueFrom } from 'rxjs';
 
+import { Memory } from './memory';
 import { MemoriesApi } from './memories-api';
+import { createSampleMemories } from './sample-memories';
 
-describe('MemoriesApi', () => {
+const MEMORIES_URL = '/api/v1/memories';
+
+function setUp(): { service: MemoriesApi; backend: HttpTestingController } {
+  TestBed.configureTestingModule({
+    providers: [provideHttpClient(), provideHttpClientTesting()],
+  });
+  return { service: TestBed.inject(MemoriesApi), backend: TestBed.inject(HttpTestingController) };
+}
+
+function textMemory(title: string): Memory {
+  return {
+    id: crypto.randomUUID(),
+    type: 'text',
+    title,
+    raw_text: title,
+    attachments: [],
+    summary: null,
+    link_preview: null,
+    source_memory: null,
+    created_at: '2026-11-17T10:00:00Z',
+  };
+}
+
+describe('MemoriesApi backend calls', () => {
   let service: MemoriesApi;
+  let backend: HttpTestingController;
+
+  beforeEach(() => ({ service, backend } = setUp()));
+  afterEach(() => backend.verify());
+
+  it('sends the typed text and every file to the backend as one form', () => {
+    const photo = new File(['x'], 'ticket.png', { type: 'image/png' });
+    const pdf = new File(['xy'], 'bill.pdf', { type: 'application/pdf' });
+    const saved = textMemory('Concert night');
+    let result: Memory | undefined;
+
+    service
+      .createMemory({ text: '  Concert night  ', files: [photo, pdf] })
+      .subscribe((memory) => (result = memory));
+
+    const request = backend.expectOne({ method: 'POST', url: MEMORIES_URL });
+    const form = request.request.body as FormData;
+    expect(form.get('text')).toBe('Concert night');
+    expect(form.getAll('files')).toEqual([photo, pdf]);
+    request.flush(saved);
+    expect(result).toEqual(saved);
+  });
+
+  it('leaves the text out of the form when only files are saved', () => {
+    service
+      .createMemory({
+        text: '   ',
+        files: [new File(['x'], 'bill.pdf', { type: 'application/pdf' })],
+      })
+      .subscribe();
+
+    const request = backend.expectOne({ method: 'POST', url: MEMORIES_URL });
+    expect((request.request.body as FormData).has('text')).toBe(false);
+    request.flush(textMemory('bill.pdf'));
+  });
+
+  it('lists the memories from the backend, asking for the biggest page', () => {
+    const memories = [textMemory('Mom phone 98765'), textMemory('Vet appointment')];
+    let result: Memory[] = [];
+
+    service.listMemories().subscribe((list) => (result = list));
+
+    const request = backend.expectOne((req) => req.url === MEMORIES_URL);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('limit')).toBe('100');
+    request.flush({ items: memories, total: 2, limit: 100, offset: 0 });
+    expect(result).toEqual(memories);
+  });
+
+  it('gets one memory by id, and passes a 404 on', () => {
+    const memory = textMemory('Mom phone 98765');
+    let status = 0;
+    let result: Memory | undefined;
+
+    service.getMemory(memory.id).subscribe((found) => (result = found));
+    backend.expectOne(`${MEMORIES_URL}/${memory.id}`).flush(memory);
+    expect(result).toEqual(memory);
+
+    service.getMemory('missing').subscribe({ error: (error) => (status = error.status) });
+    backend
+      .expectOne(`${MEMORIES_URL}/missing`)
+      .flush({}, { status: 404, statusText: 'Not Found' });
+    expect(status).toBe(404);
+  });
+
+  it('renames a memory on the backend with the trimmed title', () => {
+    const memory = textMemory('Old title');
+    let result: Memory | undefined;
+
+    service.updateMemory(memory.id, { title: '  New title  ' }).subscribe((m) => (result = m));
+
+    const request = backend.expectOne({ method: 'PATCH', url: `${MEMORIES_URL}/${memory.id}` });
+    expect(request.request.body).toEqual({ title: 'New title' });
+    request.flush({ ...memory, title: 'New title' });
+    expect(result?.title).toBe('New title');
+  });
+
+  it('deletes a memory on the backend', () => {
+    let isDone = false;
+
+    service.deleteMemory('abc').subscribe(() => (isDone = true));
+
+    const request = backend.expectOne({ method: 'DELETE', url: `${MEMORIES_URL}/abc` });
+    request.flush(null, { status: 204, statusText: 'No Content' });
+    expect(isDone).toBe(true);
+  });
+});
+
+// Asking, searching, renaming and saving answers are still an in-browser stand-in. It works on
+// the memories loaded from the backend, so each test first "loads" some.
+describe('MemoriesApi stand-in for ask, search and rename', () => {
+  let service: MemoriesApi;
+  let backend: HttpTestingController;
 
   beforeEach(() => {
-    service = createService();
+    vi.useFakeTimers();
+    ({ service, backend } = setUp());
+  });
+  afterEach(() => {
+    backend.verify();
+    vi.useRealTimers();
   });
 
-  afterEach(() => vi.useRealTimers());
-
-  it('starts with sample memories of every format, with real sample files', async () => {
-    const memories = await settle(service.listMemories());
-
-    expect(new Set(memories.map((memory) => memory.type))).toEqual(
-      new Set(['text', 'image', 'pdf', 'link', 'excel']),
-    );
-    const fileUrls = memories.flatMap((memory) => memory.attachments.map((file) => file.file_url));
-    expect(fileUrls.length).toBeGreaterThan(0);
-    expect(fileUrls.every((url) => url.startsWith('/samples/'))).toBe(true);
-  });
-
-  it('gets one memory, and fails for one that does not exist', async () => {
-    const [first] = await settle(service.listMemories());
-
-    expect(await settle(service.getMemory(first.id))).toEqual(first);
-    await expect(settle(service.getMemory('missing'))).rejects.toThrow('Memory not found');
-  });
+  /** Make the service load these memories, as if the backend had returned them. */
+  function load(memories: Memory[]): void {
+    service.listMemories().subscribe();
+    backend
+      .expectOne((req) => req.url === MEMORIES_URL)
+      .flush({ items: memories, total: memories.length, limit: 100, offset: 0 });
+  }
 
   it('answers a question from the one memory it is asked about', async () => {
+    load(createSampleMemories());
+
     const wifi = await settle(service.askMemory('sample-wifi', "What's the password?"));
     const rent = await settle(service.askMemory('sample-lease', 'When is the rent due?'));
     const hotel = await settle(service.askMemory('sample-budget', 'How much is the hotel?'));
@@ -45,6 +160,8 @@ describe('MemoriesApi', () => {
   });
 
   it("says so instead of guessing when the memory doesn't contain the answer", async () => {
+    load(createSampleMemories());
+
     // The restaurant note never mentions a price, though the budget sheet does.
     const answer = await settle(service.askMemory('sample-restaurant', 'How much is the food?'));
 
@@ -53,6 +170,7 @@ describe('MemoriesApi', () => {
   });
 
   it('saves an answer as a new memory linked to the one it came from', async () => {
+    load(createSampleMemories());
     const answer = await settle(service.askMemory('sample-lease', 'When is the rent due?'));
 
     const saved = await settle(service.saveAnswer('sample-lease', answer));
@@ -63,10 +181,11 @@ describe('MemoriesApi', () => {
       raw_text: answer.text,
       source_memory: { id: 'sample-lease', title: 'Apartment lease agreement' },
     });
-    expect((await settle(service.listMemories()))[0].id).toBe(saved.id);
   });
 
-  it('finds the sample memories with the suggested searches', async () => {
+  it('finds memories with the suggested searches', async () => {
+    load(createSampleMemories());
+
     const parking = await settle(service.searchMemories('Where did I park at the airport?'));
     const rent = await settle(service.searchMemories('When is the rent due?'));
 
@@ -77,6 +196,8 @@ describe('MemoriesApi', () => {
   });
 
   it('answers about a saved link from what the page is about, not its address', async () => {
+    load(createSampleMemories());
+
     const result = await settle(service.searchMemories('banana bread recipe'));
 
     expect(result.memories[0].id).toBe('sample-recipe');
@@ -84,144 +205,44 @@ describe('MemoriesApi', () => {
     expect(result.answer?.text).toContain('banana bread');
   });
 
-  it('renames a memory everywhere it is listed', async () => {
-    const [first] = await settle(service.listMemories());
+  it('searches by the new title after a rename', async () => {
+    const [first] = createSampleMemories();
+    load([first]);
+    service.updateMemory(first.id, { title: 'Wifi at home' }).subscribe();
+    backend
+      .expectOne({ method: 'PATCH', url: `${MEMORIES_URL}/${first.id}` })
+      .flush({ ...first, title: 'Wifi at home' });
 
-    const renamed = await settle(service.updateMemory(first.id, { title: '  Wifi at home  ' }));
+    const result = await settle(service.searchMemories('wifi at home'));
 
-    expect(renamed).toEqual({ ...first, title: 'Wifi at home' });
-    expect((await settle(service.listMemories()))[0].title).toBe('Wifi at home');
-  });
-});
-
-// The remaining tests start from an empty account so samples can't match by accident.
-describe('MemoriesApi with no memories yet', () => {
-  let service: MemoriesApi;
-
-  beforeEach(async () => {
-    service = createService();
-    for (const memory of await settle(service.listMemories())) {
-      await settle(service.deleteMemory(memory.id));
-    }
+    expect(result.memories[0].title).toBe('Wifi at home');
   });
 
-  afterEach(() => vi.useRealTimers());
-
-  it('saves typed text as a text memory titled by its content', async () => {
-    const memory = await settle(service.createMemory({ text: '  Gym at 7 tonight  ', files: [] }));
-
-    expect(memory).toMatchObject({
-      type: 'text',
-      title: 'Gym at 7 tonight',
-      raw_text: 'Gym at 7 tonight',
-      attachments: [],
-      summary: null,
-      link_preview: null,
-    });
-  });
-
-  it('recognises links and map links in typed text', async () => {
-    const link = await settle(
-      service.createMemory({ text: 'https://shop.example/dress', files: [] }),
-    );
-    const map = await settle(
-      service.createMemory({ text: 'https://maps.app.goo.gl/abc123', files: [] }),
-    );
-
-    expect(link.type).toBe('link');
-    expect(map.type).toBe('map');
-  });
-
-  it('keeps typed text and attached files together in one memory', async () => {
-    const photo = new File(['x'], 'ticket.png', { type: 'image/png' });
-    const pdf = new File(['xy'], 'bill.pdf', { type: 'application/pdf' });
-
-    const memory = await settle(
-      service.createMemory({ text: 'Concert night', files: [photo, pdf] }),
-    );
-
-    expect(memory.type).toBe('text');
-    expect(memory.title).toBe('Concert night');
-    expect(memory.attachments).toEqual([
-      expect.objectContaining({
-        kind: 'image',
-        file_name: 'ticket.png',
-        file_url: 'blob:ticket.png',
-        file_size: 1,
-      }),
-      expect.objectContaining({
-        kind: 'pdf',
-        file_name: 'bill.pdf',
-        file_url: 'blob:bill.pdf',
-        file_size: 2,
-      }),
-    ]);
-    expect(await settle(service.listMemories())).toHaveLength(1);
-  });
-
-  it("names a files-only memory after its first file and takes that file's kind", async () => {
-    const files = [
-      new File(['x'], 'bill.pdf', { type: 'application/pdf' }),
-      new File(['x'], 'budget.xlsx'),
-    ];
-
-    const memory = await settle(service.createMemory({ text: '   ', files }));
-
-    expect(memory).toMatchObject({ type: 'pdf', title: 'bill.pdf + 1 more', raw_text: null });
-  });
-
-  it('lists memories newest first', async () => {
-    await settle(service.createMemory({ text: 'Vet appointment in 3 days', files: [] }));
-    await settle(service.createMemory({ text: 'Mom phone 98765', files: [] }));
-
-    const memories = await settle(service.listMemories());
-
-    expect(memories.map((memory) => memory.title)).toEqual([
-      'Mom phone 98765',
-      'Vet appointment in 3 days',
-    ]);
-  });
-
-  it('deletes a memory and frees all its files', async () => {
-    const photo = await settle(
-      service.createMemory({
-        text: '',
-        files: [
-          new File(['x'], 'photo.png', { type: 'image/png' }),
-          new File(['x'], 'bill.pdf', { type: 'application/pdf' }),
-        ],
-      }),
-    );
-    await settle(service.createMemory({ text: 'Mom phone 98765', files: [] }));
-
-    await settle(service.deleteMemory(photo.id));
-
-    const memories = await settle(service.listMemories());
-    expect(memories.map((memory) => memory.title)).toEqual(['Mom phone 98765']);
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:photo.png');
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:bill.pdf');
-  });
-
-  it('answers from the one clear best match and points to it', async () => {
-    await settle(
-      service.createMemory({ text: 'Vet appointment for Bruno on Friday at 5', files: [] }),
-    );
-    await settle(service.createMemory({ text: 'Mom phone 98765', files: [] }));
+  it('finds a memory that was just saved', async () => {
+    const saved = textMemory('Vet appointment for Bruno on Friday at 5');
+    load([textMemory('Mom phone 98765')]);
+    service.createMemory({ text: saved.title, files: [] }).subscribe();
+    backend.expectOne({ method: 'POST', url: MEMORIES_URL }).flush(saved);
 
     const result = await settle(service.searchMemories('When is the vet appointment?'));
 
-    expect(result.memories.map((memory) => memory.title)).toEqual([
-      'Vet appointment for Bruno on Friday at 5',
-    ]);
-    expect(result.answer?.text).toBe('Vet appointment for Bruno on Friday at 5');
-    expect(result.answer?.sources).toEqual([
-      { id: result.memories[0].id, title: 'Vet appointment for Bruno on Friday at 5' },
-    ]);
+    expect(result.memories.map((memory) => memory.id)).toEqual([saved.id]);
+    expect(result.answer?.sources).toEqual([{ id: saved.id, title: saved.title }]);
+  });
+
+  it('stops finding a memory once it is deleted', async () => {
+    const mom = textMemory('Mom phone 98765');
+    load([mom]);
+    service.deleteMemory(mom.id).subscribe();
+    backend.expectOne({ method: 'DELETE', url: `${MEMORIES_URL}/${mom.id}` }).flush(null);
+
+    const result = await settle(service.searchMemories('mom phone'));
+
+    expect(result).toEqual({ answer: null, memories: [] });
   });
 
   it('lists the candidates instead of guessing when several match equally', async () => {
-    await settle(service.createMemory({ text: 'Gym at 7 this evening', files: [] }));
-    await settle(service.createMemory({ text: 'Pack the gym bag', files: [] }));
+    load([textMemory('Gym at 7 this evening'), textMemory('Pack the gym bag')]);
 
     const result = await settle(service.searchMemories('gym'));
 
@@ -233,36 +254,17 @@ describe('MemoriesApi with no memories yet', () => {
   });
 
   it('shows at most five matches, best first', async () => {
-    for (const day of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) {
-      await settle(service.createMemory({ text: `Gym on ${day}`, files: [] }));
-    }
-    await settle(service.createMemory({ text: 'Gym with Rahul on Sunday', files: [] }));
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => `Gym on ${day}`);
+    load([...days, 'Gym with Rahul on Sunday'].map(textMemory));
 
     const result = await settle(service.searchMemories('gym with Rahul'));
 
     expect(result.memories).toHaveLength(5);
     expect(result.memories[0].title).toBe('Gym with Rahul on Sunday');
   });
-
-  it('finds nothing and gives no answer when nothing matches', async () => {
-    await settle(service.createMemory({ text: 'Mom phone 98765', files: [] }));
-
-    const result = await settle(service.searchMemories('where is my passport?'));
-
-    expect(result).toEqual({ answer: null, memories: [] });
-  });
 });
 
-function createService(): MemoriesApi {
-  vi.useFakeTimers();
-  // jsdom has no blob URLs; the stand-in uses them to serve uploaded files.
-  URL.createObjectURL = vi.fn((file: Blob) => `blob:${(file as File).name}`);
-  URL.revokeObjectURL = vi.fn();
-  TestBed.configureTestingModule({});
-  return TestBed.inject(MemoriesApi);
-}
-
-// Skips the pretend network delay.
+// Skips the pretend thinking delay of the stand-in.
 async function settle<T>(request: Observable<T>): Promise<T> {
   const result = firstValueFrom(request);
   // Attach a no-op handler so a failure is only reported where the test awaits it.

@@ -1,13 +1,18 @@
-import { Injectable } from '@angular/core';
-import { Observable, delay, of, switchMap, throwError, timer } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable, delay, map, of, switchMap, tap, throwError, timer } from 'rxjs';
 
-import { Attachment, AttachmentKind } from './attachment';
-import { Memory, MemoryType } from './memory';
+import { API_BASE_URL } from '../../core/config/api-config';
+import { Memory } from './memory';
 import { MemoryAnswer } from './memory-answer';
 import { MemoryDraft } from './memory-draft';
+import { MemoryListResponse } from './memory-list-response';
 import { MemoryUpdate } from './memory-update';
-import { createSampleMemories } from './sample-memories';
 import { SearchAnswer, SearchResult } from './search-result';
+
+const MEMORIES_URL = `${API_BASE_URL}/memories`;
+// The backend allows at most 100 per page; paging in the UI comes later.
+const LIST_LIMIT = 100;
 
 // Pretend network delays so loading states are visible before the backend exists.
 const FAKE_LATENCY_MS = 200;
@@ -16,7 +21,6 @@ const TITLE_MAX_LENGTH = 60;
 const MAX_RESULTS = 5;
 const MIN_KEYWORD_LENGTH = 3;
 const URL_PATTERN = /^https?:\/\/\S+$/i;
-const MAP_URL_PATTERN = /^https?:\/\/(maps\.app\.goo\.gl|(www\.)?google\.[a-z.]+\/maps)/i;
 // Words that say how the user asks, not what they ask about.
 const QUESTION_WORDS = new Set([
   'what',
@@ -67,68 +71,68 @@ const WORD_ENDINGS = /(ing|ed|es|s)$/;
 const PASSAGE_BREAK = /(?<=[.!?])\s+|\n+/;
 
 /**
- * Saves, lists, deletes and answers questions about the user's memories.
- * Temporary in-browser version: it starts with sample memories, data and files reset on refresh,
- * uploads are served from local `blob:` links, and answers are simple keyword matches standing in
- * for the backend AI agent.
+ * Saves, lists, reads and deletes the user's memories on the backend. Renaming, asking and
+ * searching are still an in-browser stand-in (simple keyword matches) until the backend has them;
+ * they work on `memories`, a copy of the memories loaded from the backend so far.
  */
 @Injectable({
   providedIn: 'root',
 })
 export class MemoriesApi {
-  private memories: Memory[] = createSampleMemories();
+  private readonly http = inject(HttpClient);
+  private memories: Memory[] = [];
 
   /** Save the typed text and all attached files together as one memory. */
   createMemory(draft: MemoryDraft): Observable<Memory> {
+    // The backend expects a form (not JSON) because files travel with the text.
+    const form = new FormData();
     const text = draft.text.trim();
-    const attachments = draft.files.map((file) => this.attach(file));
-    const memory: Memory = {
-      id: crypto.randomUUID(),
-      type: text ? this.detectTextType(text) : attachments[0].kind,
-      title: this.makeTitle(text, attachments),
-      raw_text: text || null,
-      attachments,
-      // The backend AI writes summaries and reads link pages; the stand-in can't.
-      summary: null,
-      link_preview: null,
-      source_memory: null,
-      created_at: new Date().toISOString(),
-    };
-    this.memories = [memory, ...this.memories];
-    return of(memory).pipe(delay(FAKE_LATENCY_MS));
+    if (text) form.append('text', text);
+    draft.files.forEach((file) => form.append('files', file));
+
+    return this.http
+      .post<Memory>(MEMORIES_URL, form)
+      .pipe(tap((memory) => (this.memories = [memory, ...this.memories])));
   }
 
-  /** Delete a memory and free its files. */
+  /** Delete a memory and its files. */
   deleteMemory(memoryId: string): Observable<void> {
-    const memory = this.memories.find((candidate) => candidate.id === memoryId);
-    memory?.attachments
-      .filter((attachment) => attachment.file_url.startsWith('blob:'))
-      .forEach((attachment) => URL.revokeObjectURL(attachment.file_url));
-    this.memories = this.memories.filter((candidate) => candidate.id !== memoryId);
-    return of(undefined).pipe(delay(FAKE_LATENCY_MS));
+    return this.http
+      .delete<void>(`${MEMORIES_URL}/${memoryId}`)
+      .pipe(tap(() => (this.memories = this.memories.filter((memory) => memory.id !== memoryId))));
   }
 
-  /** List memories newest first. */
+  /** List memories newest first (the first 100 for now). */
   listMemories(): Observable<Memory[]> {
-    return of(this.memories).pipe(delay(FAKE_LATENCY_MS));
+    return this.http.get<MemoryListResponse>(MEMORIES_URL, { params: { limit: LIST_LIMIT } }).pipe(
+      map((page) => page.items),
+      tap((memories) => (this.memories = memories)),
+    );
   }
 
-  /** Get one memory; fails when it doesn't exist (the backend answers 404). */
+  /** Get one memory; fails with a 404 when it doesn't exist or isn't the user's. */
   getMemory(memoryId: string): Observable<Memory> {
-    const memory = this.memories.find((candidate) => candidate.id === memoryId);
-    if (!memory) return failLater('Memory not found');
-    return of(memory).pipe(delay(FAKE_LATENCY_MS));
+    return this.http.get<Memory>(`${MEMORIES_URL}/${memoryId}`).pipe(
+      tap((loaded) => {
+        const isKnown = this.memories.some((memory) => memory.id === loaded.id);
+        this.memories = isKnown
+          ? this.memories.map((memory) => (memory.id === loaded.id ? loaded : memory))
+          : [...this.memories, loaded];
+      }),
+    );
   }
 
   /** Change a memory's title and return the updated memory. */
   updateMemory(memoryId: string, changes: MemoryUpdate): Observable<Memory> {
-    const memory = this.memories.find((candidate) => candidate.id === memoryId);
-    if (!memory) return failLater('Memory not found');
-    const updated = { ...memory, title: changes.title.trim() };
-    this.memories = this.memories.map((candidate) =>
-      candidate.id === memoryId ? updated : candidate,
-    );
-    return of(updated).pipe(delay(FAKE_LATENCY_MS));
+    return this.http
+      .patch<Memory>(`${MEMORIES_URL}/${memoryId}`, { title: changes.title.trim() })
+      .pipe(
+        tap((updated) => {
+          this.memories = this.memories.map((memory) =>
+            memory.id === memoryId ? updated : memory,
+          );
+        }),
+      );
   }
 
   /**
@@ -184,35 +188,6 @@ export class MemoriesApi {
   }
 
   // The backend will own titles, type detection and file storage; this mimics them for now.
-  private makeTitle(text: string, attachments: Attachment[]): string {
-    if (text) return text.slice(0, TITLE_MAX_LENGTH);
-    const [first, ...others] = attachments;
-    return others.length > 0 ? `${first.file_name} + ${others.length} more` : first.file_name;
-  }
-
-  private attach(file: File): Attachment {
-    return {
-      id: crypto.randomUUID(),
-      kind: this.detectFileKind(file),
-      file_name: file.name,
-      file_url: URL.createObjectURL(file),
-      file_size: file.size,
-      // The backend will read the first rows of spreadsheets; the stand-in can't.
-      preview_rows: null,
-    };
-  }
-
-  private detectTextType(text: string): MemoryType {
-    if (MAP_URL_PATTERN.test(text)) return 'map';
-    if (URL_PATTERN.test(text)) return 'link';
-    return 'text';
-  }
-
-  private detectFileKind(file: File): AttachmentKind {
-    if (file.type.startsWith('image/')) return 'image';
-    if (file.type === 'application/pdf') return 'pdf';
-    return 'excel';
-  }
 }
 
 /** The words of a question that say what it's about, with rough word endings removed. */

@@ -28,31 +28,30 @@
       <span class="viewer__actions">
         @if (part.attachment; as file) {
           @if (file.kind !== 'excel') {
-            <a
+            <button
               pButton
+              type="button"
               size="small"
               severity="secondary"
               [text]="true"
               [rounded]="true"
-              [href]="file.file_url"
-              target="_blank"
-              rel="noopener noreferrer"
+              (click)="filesApi.openInNewTab(file)"
               [attr.aria-label]="'Open ' + file.file_name + ' in a new tab'"
             >
               <i pButtonIcon class="pi pi-external-link"></i>
-            </a>
+            </button>
           }
-          <a
+          <button
             pButton
+            type="button"
             size="small"
             [rounded]="true"
             [outlined]="true"
-            [href]="file.file_url"
-            [attr.download]="file.file_name"
+            (click)="filesApi.saveFile(file)"
           >
             <i pButtonIcon class="pi pi-download"></i>
             <span pButtonLabel>Download</span>
-          </a>
+          </button>
         } @else if (isLink()) {
           <a
             pButton

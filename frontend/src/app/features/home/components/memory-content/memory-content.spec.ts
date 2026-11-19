@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 
 import { Attachment } from '../../attachment';
+import { AttachmentFilesApi } from '../../attachment-files-api';
 import { Memory } from '../../memory';
 import { MemoryContent, domainOf, partsOf } from './memory-content';
 
@@ -63,10 +65,19 @@ describe('partsOf', () => {
 describe('MemoryContent', () => {
   let fixture: ComponentFixture<MemoryContent>;
   let compiled: HTMLElement;
+  const filesApi = {
+    loadFileUrl: (url: string) => of(url),
+    saveFile: vi.fn(),
+    openInNewTab: vi.fn(),
+  };
 
   beforeEach(async () => {
+    filesApi.saveFile.mockClear();
+    filesApi.openInNewTab.mockClear();
     await TestBed.configureTestingModule({
       imports: [MemoryContent],
+      // A stand-in that returns the file link as it is, so no download is needed.
+      providers: [{ provide: AttachmentFilesApi, useValue: filesApi }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(MemoryContent);
@@ -105,8 +116,12 @@ describe('MemoryContent', () => {
     expect(compiled.querySelector('.viewer__label')?.textContent).toBe('bill.pdf');
     expect(compiled.querySelector('iframe')?.getAttribute('src')).toBe('blob:bill');
     expect(compiled.querySelector('.viewer__text')).toBeNull();
-    const download = compiled.querySelector<HTMLAnchorElement>('.viewer__actions a[download]')!;
-    expect(download.getAttribute('download')).toBe('bill.pdf');
+
+    const buttons = compiled.querySelectorAll<HTMLButtonElement>('.viewer__actions button');
+    buttons[0].click();
+    buttons[1].click();
+    expect(filesApi.openInNewTab).toHaveBeenCalledWith(BILL);
+    expect(filesApi.saveFile).toHaveBeenCalledWith(BILL);
   });
 
   it('starts on the first part again when another memory is shown', async () => {
