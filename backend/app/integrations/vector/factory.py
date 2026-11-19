@@ -11,6 +11,13 @@ from app.core.config import Settings
 COLLECTION_NAME = "memories-cosine"
 
 
+def reset_vector_store(store: VectorStore) -> None:
+    """Delete everything in the store and leave it empty, with the same cosine setting."""
+    if not isinstance(store, Chroma):
+        raise TypeError(f"Cannot reset a {type(store).__name__}")
+    store.reset_collection()
+
+
 def create_vector_store(settings: Settings, embeddings: Embeddings) -> VectorStore:
     """Build the store chosen by VECTOR_STORE; only the local Chroma folder exists so far."""
     return Chroma(

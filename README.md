@@ -17,6 +17,7 @@ cp ../.env.example ../.env                   # then fill in the keys (one .env a
 .venv/bin/python -m alembic upgrade head     # create/update the database tables
 .venv/bin/uvicorn app.main:app --reload      # http://localhost:8000/docs
 .venv/bin/pytest                             # tests
+.venv/bin/python -m scripts.reindex          # rebuild the search index (after changing EMBEDDING_MODEL)
 .venv/bin/ruff check . && .venv/bin/mypy app # lint and types
 ```
 

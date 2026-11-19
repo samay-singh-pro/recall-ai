@@ -49,6 +49,15 @@ class Settings(BaseSettings):
     llm_model: str = Field(
         default="gemini-3.5-flash-lite", description="Model name at that provider"
     )
+    # Without a limit a slow or stuck model call holds the request open (LangChain's own defaults
+    # are no timeout and 6 retries). Real answers took 9 to 40 seconds with the cheapest Gemini,
+    # which also refuses any limit under 10 seconds.
+    llm_timeout_seconds: int = Field(
+        default=45, ge=10, description="Longest a single chat model call may take"
+    )
+    llm_max_retries: int = Field(
+        default=2, ge=0, description="Times a failed chat model call is tried again"
+    )
     gemini_api_key: SecretStr = Field(default=SecretStr(""), description="Free key from AI Studio")
     groq_api_key: SecretStr = Field(default=SecretStr(""), description="Free key from Groq console")
 

@@ -130,7 +130,7 @@ export class MemoryDetail {
     });
   }
 
-  /** Ask a question answered only from this memory; replaces the previous answer. */
+  /** Ask a question about this memory; replaces the previous answer. */
   protected askMemory(question: string): void {
     const memory = this.memory();
     if (!memory || this.isAsking()) return;

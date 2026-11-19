@@ -43,7 +43,6 @@ const NOTE: Memory = {
 const RENT_ANSWER: MemoryAnswer = {
   question: 'When is rent due?',
   text: 'Rent is due by the 5th.',
-  found: true,
 };
 const SAVED_ANSWER: Memory = {
   ...NOTE,
@@ -203,7 +202,7 @@ describe('MemoryDetail', () => {
     await stable();
   }
 
-  it('answers a question about this memory only, below the box', async () => {
+  it('answers a question about this memory, below the box', async () => {
     await open('lease');
 
     await askAbout('When is rent due?');

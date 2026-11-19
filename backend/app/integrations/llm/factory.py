@@ -17,4 +17,6 @@ def create_chat_model(settings: Settings) -> BaseChatModel:
         settings.llm_model,
         model_provider=settings.llm_provider,
         api_key=provider_secret,  # secret-guard:ignore (read from settings, not a literal)
+        timeout=settings.llm_timeout_seconds,
+        max_retries=settings.llm_max_retries,
     )

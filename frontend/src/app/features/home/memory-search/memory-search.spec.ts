@@ -5,7 +5,7 @@ import { Subject, of, throwError } from 'rxjs';
 
 import { MemoriesApi } from '../memories-api';
 import { Memory } from '../memory';
-import { SearchResult } from '../search-result';
+import { SearchAnswer, SearchResult } from '../search-result';
 import { MemorySearch } from './memory-search';
 
 function memoryNamed(id: string, title: string): Memory {
@@ -23,18 +23,25 @@ function memoryNamed(id: string, title: string): Memory {
 }
 
 const WIFI = memoryNamed('wifi', "Mom's wifi password");
+// The matches arrive first, with no answer yet; the answer is written and added after.
 const FOUND: SearchResult = {
-  answer: { text: 'Password: sunflower42', sources: [{ id: 'wifi', title: WIFI.title }] },
+  answer: null,
   memories: [WIFI, memoryNamed('router', 'Router manual')],
+};
+const ANSWER: SearchAnswer = {
+  text: 'Password: sunflower42',
+  sources: [{ id: 'wifi', title: WIFI.title }],
 };
 
 describe('MemorySearch', () => {
   let harness: RouterTestingHarness;
   let compiled: HTMLElement;
   let searchMemories: ReturnType<typeof vi.fn>;
+  let askQuestion: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     searchMemories = vi.fn().mockReturnValue(of(FOUND));
+    askQuestion = vi.fn().mockReturnValue(of(ANSWER));
     TestBed.configureTestingModule({
       providers: [
         provideRouter(
@@ -44,7 +51,7 @@ describe('MemorySearch', () => {
           ],
           withComponentInputBinding(),
         ),
-        { provide: MemoriesApi, useValue: { searchMemories } },
+        { provide: MemoriesApi, useValue: { searchMemories, askQuestion } },
       ],
     });
   });
@@ -72,6 +79,7 @@ describe('MemorySearch', () => {
     await open('/home/search?q=wifi%20password');
 
     expect(searchMemories).toHaveBeenCalledWith('wifi password');
+    expect(askQuestion).toHaveBeenCalledWith('wifi password');
     expect(compiled.querySelector('.search__answer-text')?.textContent).toBe(
       'Password: sunflower42',
     );
@@ -86,9 +94,7 @@ describe('MemorySearch', () => {
   });
 
   it('calls the results possible matches when the answer asks the user to pick', async () => {
-    searchMemories.mockReturnValue(
-      of({ ...FOUND, answer: { text: '2 memories could match.', sources: [] } }),
-    );
+    askQuestion.mockReturnValue(of({ text: '2 memories could match.', sources: [] }));
 
     await open('/home/search?q=wifi');
 
@@ -104,7 +110,29 @@ describe('MemorySearch', () => {
     await open('/home/search?q=passport');
 
     expect(compiled.querySelector('h1')?.textContent).toContain('Nothing matches "passport"');
+    expect(askQuestion).not.toHaveBeenCalled(); // nothing to answer from, so no AI call
     expect(compiled.querySelectorAll('.search__suggestion').length).toBeGreaterThan(0);
+  });
+
+  it('shows the matches with a placeholder while the answer is being written', async () => {
+    askQuestion.mockReturnValue(new Subject<SearchAnswer>());
+
+    await open('/home/search?q=wifi');
+
+    expect(compiled.querySelectorAll('ra-memory-card').length).toBe(2);
+    expect(compiled.querySelector('[aria-label="Writing an answer"]')).not.toBeNull();
+    expect(compiled.querySelector('.search__answer')).toBeNull();
+  });
+
+  it('keeps the matches and shows no error when the answer cannot be written', async () => {
+    askQuestion.mockReturnValue(throwError(() => new Error('model is down')));
+
+    await open('/home/search?q=wifi');
+
+    expect(compiled.querySelectorAll('ra-memory-card').length).toBe(2);
+    expect(compiled.querySelector('.search__answer')).toBeNull();
+    expect(compiled.querySelector('[aria-label="Writing an answer"]')).toBeNull();
+    expect(compiled.querySelector('.search__state')).toBeNull();
   });
 
   it('shows placeholders while searching', async () => {

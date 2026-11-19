@@ -4,9 +4,10 @@ import { TestBed } from '@angular/core/testing';
 import { Observable, firstValueFrom } from 'rxjs';
 
 import { Memory } from './memory';
+import { MemoryAnswer } from './memory-answer';
 import { MemoriesApi } from './memories-api';
 import { createSampleMemories } from './sample-memories';
-import { SearchResult } from './search-result';
+import { SearchAnswer, SearchResult } from './search-result';
 
 const MEMORIES_URL = '/api/v1/memories';
 
@@ -95,6 +96,34 @@ describe('MemoriesApi backend calls', () => {
     expect(result).toEqual({ answer: null, memories });
   });
 
+  it('asks the AI a question and turns the reply into an answer with its sources', () => {
+    const memory = textMemory('Rent is due by the 5th');
+    let answer: SearchAnswer | undefined;
+
+    service.askQuestion('when is rent due').subscribe((found) => (answer = found));
+
+    const request = backend.expectOne({ method: 'POST', url: '/api/v1/chat/messages' });
+    expect(request.request.body).toEqual({ question: 'when is rent due' });
+    request.flush({ answer: 'Rent is due by the 5th.', memories: [memory] });
+    expect(answer).toEqual({
+      text: 'Rent is due by the 5th.',
+      sources: [{ id: memory.id, title: 'Rent is due by the 5th' }],
+    });
+  });
+
+  it('passes on a failure when the AI cannot write the answer', () => {
+    let status = 0;
+
+    service
+      .askQuestion('when is rent due')
+      .subscribe({ error: (error) => (status = error.status) });
+    backend
+      .expectOne('/api/v1/chat/messages')
+      .flush({}, { status: 503, statusText: 'Service Unavailable' });
+
+    expect(status).toBe(503);
+  });
+
   it('gets one memory by id, and passes a 404 on', () => {
     const memory = textMemory('Mom phone 98765');
     let status = 0;
@@ -123,6 +152,30 @@ describe('MemoriesApi backend calls', () => {
     expect(result?.title).toBe('New title');
   });
 
+  it('asks a question about one memory on the backend and keeps the question with the answer', () => {
+    let answer: MemoryAnswer | undefined;
+
+    service.askMemory('lease', 'When is rent due?').subscribe((found) => (answer = found));
+
+    const request = backend.expectOne({ method: 'POST', url: `${MEMORIES_URL}/lease/answers` });
+    expect(request.request.body).toEqual({ question: 'When is rent due?' });
+    request.flush({ answer: 'Rent is due by the 5th.' });
+    expect(answer).toEqual({ question: 'When is rent due?', text: 'Rent is due by the 5th.' });
+  });
+
+  it('passes on a failure when the AI cannot answer about a memory', () => {
+    let status = 0;
+
+    service
+      .askMemory('lease', 'When is rent due?')
+      .subscribe({ error: (error) => (status = error.status) });
+    backend
+      .expectOne(`${MEMORIES_URL}/lease/answers`)
+      .flush({}, { status: 503, statusText: 'Service Unavailable' });
+
+    expect(status).toBe(503);
+  });
+
   it('deletes a memory on the backend', () => {
     let isDone = false;
 
@@ -134,9 +187,9 @@ describe('MemoriesApi backend calls', () => {
   });
 });
 
-// Asking a memory and saving answers are still an in-browser stand-in. It works on
-// the memories loaded from the backend, so each test first "loads" some.
-describe('MemoriesApi stand-in for ask and save answer', () => {
+// Saving an answer is still an in-browser stand-in. It works on the memories loaded from
+// the backend, so each test first "loads" some.
+describe('MemoriesApi stand-in for save answer', () => {
   let service: MemoriesApi;
   let backend: HttpTestingController;
 
@@ -157,35 +210,12 @@ describe('MemoriesApi stand-in for ask and save answer', () => {
       .flush({ items: memories, total: memories.length, limit: 100, offset: 0 });
   }
 
-  it('answers a question from the one memory it is asked about', async () => {
-    load(createSampleMemories());
-
-    const wifi = await settle(service.askMemory('sample-wifi', "What's the password?"));
-    const rent = await settle(service.askMemory('sample-lease', 'When is the rent due?'));
-    const hotel = await settle(service.askMemory('sample-budget', 'How much is the hotel?'));
-
-    expect(wifi).toEqual({
-      question: "What's the password?",
-      text: 'Password: sunflower42',
-      found: true,
-    });
-    expect(rent.text).toContain('due by the 5th');
-    expect(hotel.text).toContain('Hotel Shinjuku, 5 nights: Category Stay, Cost (USD) 960');
-  });
-
-  it("says so instead of guessing when the memory doesn't contain the answer", async () => {
-    load(createSampleMemories());
-
-    // The restaurant note never mentions a price, though the budget sheet does.
-    const answer = await settle(service.askMemory('sample-restaurant', 'How much is the food?'));
-
-    expect(answer.found).toBe(false);
-    expect(answer.text).toContain("doesn't say");
-  });
-
   it('saves an answer as a new memory linked to the one it came from', async () => {
     load(createSampleMemories());
-    const answer = await settle(service.askMemory('sample-lease', 'When is the rent due?'));
+    const answer: MemoryAnswer = {
+      question: 'When is the rent due?',
+      text: 'Rent is due by the 5th.',
+    };
 
     const saved = await settle(service.saveAnswer('sample-lease', answer));
 
@@ -198,7 +228,7 @@ describe('MemoriesApi stand-in for ask and save answer', () => {
   });
 });
 
-// Skips the pretend thinking delay of the stand-in.
+// Skips the pretend delay of the stand-in.
 async function settle<T>(request: Observable<T>): Promise<T> {
   const result = firstValueFrom(request);
   // Attach a no-op handler so a failure is only reported where the test awaits it.

@@ -3,78 +3,30 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, delay, map, of, switchMap, tap, throwError, timer } from 'rxjs';
 
 import { API_BASE_URL } from '../../core/config/api-config';
+import { ChatAnswerResponse } from './chat-answer-response';
 import { Memory } from './memory';
 import { MemoryAnswer } from './memory-answer';
+import { MemoryAnswerResponse } from './memory-answer-response';
 import { MemoryDraft } from './memory-draft';
 import { MemoryListResponse } from './memory-list-response';
 import { MemorySearchResponse } from './memory-search-response';
 import { MemoryUpdate } from './memory-update';
-import { SearchResult } from './search-result';
+import { SearchAnswer, SearchResult } from './search-result';
 
 const MEMORIES_URL = `${API_BASE_URL}/memories`;
+const CHAT_MESSAGES_URL = `${API_BASE_URL}/chat/messages`;
 // The backend allows at most 100 per page; paging in the UI comes later.
 const LIST_LIMIT = 100;
 
 // Pretend network delays so loading states are visible before the backend exists.
 const FAKE_LATENCY_MS = 200;
-const FAKE_THINKING_MS = 900;
 const TITLE_MAX_LENGTH = 60;
 const SEARCH_LIMIT = 5;
-const MIN_KEYWORD_LENGTH = 3;
-const URL_PATTERN = /^https?:\/\/\S+$/i;
-// Words that say how the user asks, not what they ask about.
-const QUESTION_WORDS = new Set([
-  'what',
-  'which',
-  'when',
-  'where',
-  'who',
-  'how',
-  'was',
-  'were',
-  'the',
-  'that',
-  'this',
-  'did',
-  'does',
-  'and',
-  'for',
-  'from',
-  'about',
-  'stored',
-  'saved',
-  'save',
-  'store',
-  'added',
-  'few',
-  'days',
-  'back',
-  'ago',
-  'some',
-  'name',
-  'remember',
-  'you',
-  'your',
-  'have',
-  'had',
-  'its',
-  'ok',
-  'okay',
-  'much',
-  'many',
-  'are',
-  'can',
-  'there',
-]);
-// Rough word endings to drop so "parking" also finds "parked" (the backend will use embeddings).
-const WORD_ENDINGS = /(ing|ed|es|s)$/;
-// Where a passage ends: after a sentence or at a line break.
-const PASSAGE_BREAK = /(?<=[.!?])\s+|\n+/;
 
 /**
- * Saves, lists, reads and deletes the user's memories on the backend. Renaming, asking and
- * searching are still an in-browser stand-in (simple keyword matches) until the backend has them;
- * they work on `memories`, a copy of the memories loaded from the backend so far.
+ * Saves, lists, reads, renames, searches and deletes the user's memories on the backend, and asks
+ * the AI questions about them. Only saving an answer as a memory is still an in-browser stand-in
+ * until the backend has it; it works on `memories`, a copy of the memories loaded so far.
  */
 @Injectable({
   providedIn: 'root',
@@ -136,18 +88,11 @@ export class MemoriesApi {
       );
   }
 
-  /**
-   * Answer a question using only this one memory. When the memory doesn't contain the answer,
-   * say so rather than guess (`found: false`).
-   */
+  /** Ask the AI a question about one memory; it starts from that memory and may add general help. */
   askMemory(memoryId: string, question: string): Observable<MemoryAnswer> {
-    const memory = this.memories.find((candidate) => candidate.id === memoryId);
-    if (!memory) return failLater('Memory not found');
-    const passage = bestPassage(memory, keywordsOf(question));
-    const answer: MemoryAnswer = passage
-      ? { question, text: passage, found: true }
-      : { question, text: "This memory doesn't say anything about that.", found: false };
-    return of(answer).pipe(delay(FAKE_THINKING_MS));
+    return this.http
+      .post<MemoryAnswerResponse>(`${MEMORIES_URL}/${memoryId}/answers`, { question })
+      .pipe(map((response) => ({ question, text: response.answer })));
   }
 
   /** Keep an answer as a new text memory that points back to the memory it was asked about. */
@@ -169,7 +114,7 @@ export class MemoriesApi {
     return of(memory).pipe(delay(FAKE_LATENCY_MS));
   }
 
-  /** Find the memories closest in meaning to the words. There is no written answer yet. */
+  /** Find the memories closest in meaning to the words; `askQuestion` writes the answer. */
   searchMemories(query: string): Observable<SearchResult> {
     return this.http
       .get<MemorySearchResponse>(`${MEMORIES_URL}/search`, {
@@ -178,66 +123,17 @@ export class MemoriesApi {
       .pipe(map((response) => ({ answer: null, memories: response.items })));
   }
 
-  // The backend will own titles, type detection and file storage; this mimics them for now.
-}
-
-/** The words of a question that say what it's about, with rough word endings removed. */
-function keywordsOf(question: string): string[] {
-  return question
-    .toLowerCase()
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter((word) => word.length >= MIN_KEYWORD_LENGTH && !QUESTION_WORDS.has(word))
-    .map((word) => {
-      const stem = word.replace(WORD_ENDINGS, '');
-      return stem.length >= MIN_KEYWORD_LENGTH ? stem : word;
-    });
-}
-
-/**
- * The sentence or line of a memory that best answers the keywords, or null if none mentions
- * them. A bare web address isn't an answer, nor is a heading line that only repeats the title
- * (unless it's the whole note).
- */
-function bestPassage(memory: Memory, keywords: string[]): string | null {
-  const title = memory.title.toLowerCase();
-  const wholeNote = memory.raw_text?.trim();
-  let best: string | null = null;
-  let bestHits = 0;
-  for (const passage of passagesOf(memory)) {
-    const text = passage.toLowerCase();
-    if (URL_PATTERN.test(passage)) continue;
-    if (title.includes(text) && passage !== wholeNote) continue;
-    const hits = keywords.filter((keyword) => text.includes(keyword)).length;
-    if (hits > bestHits) {
-      best = passage;
-      bestHits = hits;
-    }
+  /** Ask the AI to write a short answer to the question from the user's own memories. */
+  askQuestion(question: string): Observable<SearchAnswer> {
+    return this.http.post<ChatAnswerResponse>(CHAT_MESSAGES_URL, { question }).pipe(
+      map((response) => ({
+        text: response.answer,
+        sources: response.memories.map((memory) => ({ id: memory.id, title: memory.title })),
+      })),
+    );
   }
-  return best;
-}
 
-/** Everything the stand-in can read in a memory, cut into sentences, lines and table rows. */
-function passagesOf(memory: Memory): string[] {
-  const texts = [memory.raw_text, memory.summary, memory.link_preview?.description ?? null];
-  const sentences = texts
-    .filter((text): text is string => !!text)
-    .flatMap((text) => text.split(PASSAGE_BREAK))
-    .map((passage) => passage.trim())
-    .filter(Boolean);
-  const rows = memory.attachments.flatMap((attachment) => describeRows(attachment.preview_rows));
-  return [...sentences, ...rows];
-}
-
-/** "Hotel Shinjuku, 5 nights: Category Stay, Cost (USD) 960, Booked Yes" for each table row. */
-function describeRows(rows: string[][] | null): string[] {
-  if (!rows) return [];
-  const [headers, ...body] = rows;
-  return body.map(([name, ...cells]) => {
-    const details = cells
-      .map((cell, index) => (cell && cell !== '-' ? `${headers[index + 1]} ${cell}` : ''))
-      .filter(Boolean);
-    return details.length > 0 ? `${name}: ${details.join(', ')}` : name;
-  });
+  // The backend will own titles, type detection and file storage; this mimics them for now.
 }
 
 // `delay` only holds back values, so a pretend failure waits on a timer instead.

@@ -26,3 +26,13 @@ def test_switching_the_provider_gives_a_different_model_without_code_changes():
 
     assert type(model).__name__ == "ChatGroq"
     assert model.model_name == "llama-3.3-70b-versatile"
+
+
+def test_the_time_limit_and_retries_come_from_the_settings():
+    settings = make_settings("google_genai", "gemini-2.5-flash")
+    settings.llm_timeout_seconds = 12
+    settings.llm_max_retries = 1
+
+    model = create_chat_model(settings)
+
+    assert (model.timeout, model.max_retries) == (12, 1)

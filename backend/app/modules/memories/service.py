@@ -11,6 +11,7 @@ from typing import Protocol
 from langchain_core.vectorstores import VectorStore
 
 from app.integrations.file_storage.base import FileStorage
+from app.integrations.vector.factory import reset_vector_store
 from app.modules.memories.errors import (
     AttachmentNotFoundError,
     EmptyMemoryError,
@@ -39,6 +40,8 @@ from app.modules.memories.schemas import (
 logger = logging.getLogger(__name__)
 
 AUTO_TITLE_MAX_LENGTH = 60
+# Texts sent to the embedding model per call when rebuilding the index (Gemini allows up to 100).
+REINDEX_BATCH_SIZE = 50
 # The whole text is one web address (no spaces), or one Google Maps address.
 URL_PATTERN = re.compile(r"^https?://\S+$", re.IGNORECASE)
 MAP_URL_PATTERN = re.compile(r"^https?://(maps\.app\.goo\.gl|(www\.)?google\.[a-z.]+/maps)", re.I)
@@ -226,6 +229,29 @@ class MemoryService:
         for file_path in file_paths:
             await self._file_storage.delete(file_path)
         await self._remove_from_index(memory_id)
+
+    async def reindex_all_memories(self) -> int:
+        """Empty the search index and add every memory's text again; return how many were added.
+
+        Used after the embedding model changes, when the old vectors no longer fit. Unlike saving,
+        an error here is raised: a half-built index must not look like a finished one.
+        """
+        # 1. Start from an empty index (a new model can have a different vector size)
+        reset_vector_store(self._vector_store)
+
+        # 2. Add the texts in batches, so one embedding call never carries hundreds of them
+        memories = await self._memory_repository.list_all_memories_with_text_for_reindex()
+        for start in range(0, len(memories), REINDEX_BATCH_SIZE):
+            batch = memories[start : start + REINDEX_BATCH_SIZE]
+            await self._vector_store.aadd_texts(
+                [memory.raw_text or "" for memory in batch],
+                metadatas=[
+                    {"user_id": str(memory.user_id), "memory_id": str(memory.id)}
+                    for memory in batch
+                ],
+                ids=[str(memory.id) for memory in batch],
+            )
+        return len(memories)
 
     async def _index_text(self, user_id: uuid.UUID, memory_id: uuid.UUID, text: str) -> None:
         """Add the text to the vector store. A failure is logged, not shown: the memory is saved."""

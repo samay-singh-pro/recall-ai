@@ -61,6 +61,20 @@ class MemoryRepository:
         result = await self._session.execute(query)
         return list(result.scalars())
 
+    async def list_all_memories_with_text_for_reindex(self) -> list[Memory]:
+        """Return every user's memories that have text, oldest first.
+
+        The one place that reads across users: rebuilding the search index must cover everyone.
+        Never call it from a request.
+        """
+        query = (
+            select(Memory)
+            .where(Memory.raw_text.is_not(None))
+            .order_by(Memory.created_at, Memory.id)
+        )
+        result = await self._session.execute(query)
+        return list(result.scalars())
+
     async def count_memories(self, user_id: uuid.UUID) -> int:
         """Return how many memories this user has in all."""
         query = select(func.count()).select_from(Memory).where(Memory.user_id == user_id)

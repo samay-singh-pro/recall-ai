@@ -7,12 +7,6 @@ import { AskMemory } from './ask-memory';
 const FOUND: MemoryAnswer = {
   question: 'When is rent due?',
   text: 'Rent 28,000 is due by the 5th.',
-  found: true,
-};
-const NOT_FOUND: MemoryAnswer = {
-  question: 'Are pets allowed?',
-  text: "This memory doesn't say anything about that.",
-  found: false,
 };
 
 describe('AskMemory', () => {
@@ -65,13 +59,6 @@ describe('AskMemory', () => {
     expect(compiled.querySelector('.ask__question')?.textContent).toBe('When is rent due?');
     expect(compiled.querySelector('.ask__text')?.textContent).toContain('due by the 5th');
     expect(saves).toHaveLength(1);
-  });
-
-  it("doesn't offer to save when the memory doesn't contain the answer", async () => {
-    await render({ answer: NOT_FOUND });
-
-    expect(compiled.querySelector('.ask__text')?.textContent).toContain("doesn't say");
-    expect(saveButton()).toBeUndefined();
   });
 
   it('confirms a saved answer and links to it', async () => {

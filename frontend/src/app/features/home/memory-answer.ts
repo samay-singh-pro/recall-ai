@@ -2,6 +2,4 @@
 export interface MemoryAnswer {
   question: string;
   text: string;
-  /** False when the memory doesn't contain the answer (then `text` says so and can't be saved). */
-  found: boolean;
 }

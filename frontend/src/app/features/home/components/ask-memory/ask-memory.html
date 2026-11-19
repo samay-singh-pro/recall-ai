@@ -32,35 +32,33 @@
     } @else if (answer(); as answer) {
       <div class="ask__answer">
         <p class="ask__question">{{ answer.question }}</p>
-        <p class="ask__text" [class.ask__text--missing]="!answer.found">{{ answer.text }}</p>
+        <p class="ask__text">{{ answer.text }}</p>
 
-        @if (answer.found) {
-          <div class="ask__footer">
-            <span class="ask__basis">Based only on this memory</span>
-            @if (savedAnswer(); as saved) {
-              <span class="ask__saved">
-                <i class="pi pi-check-circle" aria-hidden="true"></i>
-                Saved as a new memory linked to this one
-              </span>
-              <p-button
-                label="Open"
-                size="small"
-                [link]="true"
-                (onClick)="openSavedAnswer.emit(saved)"
-              />
-            } @else {
-              <p-button
-                label="Save answer"
-                icon="pi pi-bookmark"
-                size="small"
-                [rounded]="true"
-                [outlined]="true"
-                [loading]="isSaving()"
-                (onClick)="saveAnswer.emit()"
-              />
-            }
-          </div>
-        }
+        <div class="ask__footer">
+          <span class="ask__basis">Based on this memory</span>
+          @if (savedAnswer(); as saved) {
+            <span class="ask__saved">
+              <i class="pi pi-check-circle" aria-hidden="true"></i>
+              Saved as a new memory linked to this one
+            </span>
+            <p-button
+              label="Open"
+              size="small"
+              [link]="true"
+              (onClick)="openSavedAnswer.emit(saved)"
+            />
+          } @else {
+            <p-button
+              label="Save answer"
+              icon="pi pi-bookmark"
+              size="small"
+              [rounded]="true"
+              [outlined]="true"
+              [loading]="isSaving()"
+              (onClick)="saveAnswer.emit()"
+            />
+          }
+        </div>
       </div>
     }
   </div>

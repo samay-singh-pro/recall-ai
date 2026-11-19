@@ -48,6 +48,8 @@
             </p>
           </div>
         </section>
+      } @else if (isAnswering()) {
+        <p-skeleton height="5.5rem" borderRadius="1rem" aria-label="Writing an answer" />
       }
 
       <section class="search__results" aria-labelledby="results-heading">
