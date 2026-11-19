@@ -1,4 +1,4 @@
-"""HTTP routes for memories: save, list, read one, download a file, rename and delete."""
+"""HTTP routes for memories: save, list, search, read one, download a file, rename, delete."""
 
 import uuid
 from typing import Annotated
@@ -13,12 +13,16 @@ from app.modules.memories.schemas import (
     CONTENT_MAX_LENGTH,
     MemoryListResponse,
     MemoryResponse,
+    MemorySearchResponse,
     MemoryUpdate,
 )
 from app.modules.memories.service import MemoryService
 
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 100
+DEFAULT_SEARCH_RESULTS = 5
+MAX_SEARCH_RESULTS = 20
+QUESTION_MAX_LENGTH = 500
 
 router = APIRouter(prefix="/memories", tags=["memories"])
 
@@ -61,6 +65,28 @@ async def list_memories(
 ) -> MemoryListResponse:
     """Return the logged-in user's memories, newest first, one page at a time."""
     return await service.list_memories(user.id, limit, offset)
+
+
+# Declared before "/{memory_id}" so the word "search" is not mistaken for a memory id.
+@router.get(
+    "/search",
+    summary="Find my memories closest in meaning to a question",
+    status_code=200,
+    response_model=MemorySearchResponse,
+)
+async def search_memories(
+    user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[MemoryService, Depends(get_memory_service)],
+    q: Annotated[
+        str,
+        Query(min_length=1, max_length=QUESTION_MAX_LENGTH, description="What to look for"),
+    ],
+    limit: Annotated[
+        int, Query(ge=1, le=MAX_SEARCH_RESULTS, description="Most memories to return")
+    ] = DEFAULT_SEARCH_RESULTS,
+) -> MemorySearchResponse:
+    """Return the logged-in user's memories closest in meaning to the question, best first."""
+    return await service.search_memories(user.id, q, limit)
 
 
 @router.get(

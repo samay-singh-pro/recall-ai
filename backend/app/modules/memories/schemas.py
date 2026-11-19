@@ -74,3 +74,9 @@ class MemoryListResponse(BaseModel):
     total: int = Field(description="How many memories the user has in all")
     limit: int = Field(description="The page size that was asked for")
     offset: int = Field(description="How many memories were skipped")
+
+
+class MemorySearchResponse(BaseModel):
+    """The user's memories closest in meaning to a question, best match first."""
+
+    items: list[MemoryResponse] = Field(description="Matching memories, best match first")

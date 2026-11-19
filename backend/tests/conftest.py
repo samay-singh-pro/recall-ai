@@ -2,11 +2,13 @@ from collections.abc import AsyncIterator, Iterator
 from pathlib import Path
 
 import pytest
+from langchain_core.embeddings import DeterministicFakeEmbedding
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from app.core.config import get_settings
 from app.db.base import Base
 from app.db.session import create_engine, create_session_factory
+from app.modules.memories.dependencies import get_vector_store
 
 
 @pytest.fixture
@@ -23,6 +25,22 @@ def isolated_database(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterat
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
+
+
+@pytest.fixture(autouse=True)
+def fake_search_index(
+    isolated_database: None, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[None]:
+    """Give every test its own vector store with fake embeddings, so Gemini is never called."""
+    monkeypatch.setenv("CHROMA_DIR", str(tmp_path / "chroma"))
+    monkeypatch.setattr(
+        "app.modules.memories.dependencies.create_embeddings",
+        lambda settings: DeterministicFakeEmbedding(size=64),
+    )
+    get_settings.cache_clear()
+    get_vector_store.cache_clear()
+    yield
+    get_vector_store.cache_clear()
 
 
 @pytest.fixture

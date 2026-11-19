@@ -51,6 +51,16 @@ class MemoryRepository:
         result = await self._session.execute(query)
         return list(result.scalars())
 
+    async def list_memories_by_ids(
+        self, user_id: uuid.UUID, memory_ids: list[uuid.UUID]
+    ) -> list[Memory]:
+        """Return the given memories that belong to this user, in no particular order."""
+        if not memory_ids:
+            return []
+        query = select(Memory).where(Memory.user_id == user_id, Memory.id.in_(memory_ids))
+        result = await self._session.execute(query)
+        return list(result.scalars())
+
     async def count_memories(self, user_id: uuid.UUID) -> int:
         """Return how many memories this user has in all."""
         query = select(func.count()).select_from(Memory).where(Memory.user_id == user_id)

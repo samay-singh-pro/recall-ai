@@ -1,11 +1,14 @@
 """Business rules for memories."""
 
+import logging
 import re
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import PurePath
 from typing import Protocol
+
+from langchain_core.vectorstores import VectorStore
 
 from app.integrations.file_storage.base import FileStorage
 from app.modules.memories.errors import (
@@ -30,7 +33,10 @@ from app.modules.memories.schemas import (
     LinkPreviewResponse,
     MemoryListResponse,
     MemoryResponse,
+    MemorySearchResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 AUTO_TITLE_MAX_LENGTH = 60
 # The whole text is one web address (no spaces), or one Google Maps address.
@@ -84,15 +90,21 @@ class MemoryService:
         self,
         memory_repository: MemoryRepository,
         file_storage: FileStorage,
+        vector_store: VectorStore,
         api_prefix: str,
         max_file_bytes: int,
         max_files: int,
+        min_search_score: float,
+        search_score_margin: float,
     ) -> None:
         self._memory_repository = memory_repository
         self._file_storage = file_storage
+        self._vector_store = vector_store
         self._api_prefix = api_prefix
         self._max_file_bytes = max_file_bytes
         self._max_files = max_files
+        self._min_search_score = min_search_score
+        self._search_score_margin = search_score_margin
 
     async def create_memory(
         self, user_id: uuid.UUID, text: str | None, files: Sequence[IncomingFile]
@@ -129,6 +141,10 @@ class MemoryService:
             for attachment in attachments:
                 await self._file_storage.delete(attachment.file_path)
             raise
+
+        # 4. Make the text searchable by meaning
+        if text:
+            await self._index_text(user_id, memory_id, text)
         return build_memory_response(memory, self._api_prefix)
 
     async def list_memories(
@@ -142,6 +158,32 @@ class MemoryService:
             total=total,
             limit=limit,
             offset=offset,
+        )
+
+    async def search_memories(
+        self, user_id: uuid.UUID, question: str, limit: int
+    ) -> MemorySearchResponse:
+        """Return this user's memories closest in meaning to the question, best match first."""
+        # 1. Ask the vector store, looking only at this user's memories
+        scored_matches = await self._vector_store.asimilarity_search_with_relevance_scores(
+            question, k=limit, filter={"user_id": str(user_id)}
+        )
+
+        # 2. Keep only the really close matches. The store always returns the nearest few, so a
+        # match needs a minimum score, and must be near the best one.
+        best_score = max((score for _, score in scored_matches), default=0.0)
+        lowest_score = max(self._min_search_score, best_score - self._search_score_margin)
+        matches = [match for match, score in scored_matches if score >= lowest_score]
+
+        # 3. Load those memories from the database (a match whose memory is gone is dropped)
+        memory_ids = [uuid.UUID(match.metadata["memory_id"]) for match in matches]
+        memories = await self._memory_repository.list_memories_by_ids(user_id, memory_ids)
+
+        # 4. The database returns them in any order, so put them back in best-match order
+        memory_by_id = {memory.id: memory for memory in memories}
+        ranked = [memory_by_id[memory_id] for memory_id in memory_ids if memory_id in memory_by_id]
+        return MemorySearchResponse(
+            items=[build_memory_response(memory, self._api_prefix) for memory in ranked]
         )
 
     async def get_memory(self, user_id: uuid.UUID, memory_id: uuid.UUID) -> MemoryResponse:
@@ -183,6 +225,26 @@ class MemoryService:
             raise MemoryNotFoundError
         for file_path in file_paths:
             await self._file_storage.delete(file_path)
+        await self._remove_from_index(memory_id)
+
+    async def _index_text(self, user_id: uuid.UUID, memory_id: uuid.UUID, text: str) -> None:
+        """Add the text to the vector store. A failure is logged, not shown: the memory is saved."""
+        try:
+            await self._vector_store.aadd_texts(
+                [text],
+                metadatas=[{"user_id": str(user_id), "memory_id": str(memory_id)}],
+                ids=[str(memory_id)],
+            )
+        except Exception:
+            # The memory is safe in the database; it just isn't searchable until re-indexed.
+            logger.exception("Could not index memory %s", memory_id)
+
+    async def _remove_from_index(self, memory_id: uuid.UUID) -> None:
+        """Remove a memory from the vector store. A failure is logged, not shown."""
+        try:
+            await self._vector_store.adelete(ids=[str(memory_id)])
+        except Exception:
+            logger.exception("Could not remove memory %s from the index", memory_id)
 
     async def _check_files(self, files: Sequence[IncomingFile]) -> list[_CheckedFile]:
         """Read the files and refuse too many, too large or unsupported ones."""

@@ -6,6 +6,7 @@ node_modules/
 dist/
 .angular/
 uploads/
+chroma/
 .DS_Store
 .idea/
 *.egg-info/

@@ -7,8 +7,9 @@ import { Memory } from './memory';
 import { MemoryAnswer } from './memory-answer';
 import { MemoryDraft } from './memory-draft';
 import { MemoryListResponse } from './memory-list-response';
+import { MemorySearchResponse } from './memory-search-response';
 import { MemoryUpdate } from './memory-update';
-import { SearchAnswer, SearchResult } from './search-result';
+import { SearchResult } from './search-result';
 
 const MEMORIES_URL = `${API_BASE_URL}/memories`;
 // The backend allows at most 100 per page; paging in the UI comes later.
@@ -18,7 +19,7 @@ const LIST_LIMIT = 100;
 const FAKE_LATENCY_MS = 200;
 const FAKE_THINKING_MS = 900;
 const TITLE_MAX_LENGTH = 60;
-const MAX_RESULTS = 5;
+const SEARCH_LIMIT = 5;
 const MIN_KEYWORD_LENGTH = 3;
 const URL_PATTERN = /^https?:\/\/\S+$/i;
 // Words that say how the user asks, not what they ask about.
@@ -168,23 +169,13 @@ export class MemoriesApi {
     return of(memory).pipe(delay(FAKE_LATENCY_MS));
   }
 
-  /**
-   * Find memories described in plain words, with a short answer drawn only from them.
-   * When several memories match equally well, the answer asks which one instead of guessing.
-   */
+  /** Find the memories closest in meaning to the words. There is no written answer yet. */
   searchMemories(query: string): Observable<SearchResult> {
-    const keywords = keywordsOf(query);
-    const ranked = this.memories
-      .map((memory) => ({ memory, score: scoreOf(memory, keywords) }))
-      .filter((match) => match.score > 0)
-      // Stable sort: equally good matches stay newest first.
-      .sort((first, second) => second.score - first.score)
-      .slice(0, MAX_RESULTS);
-    const result: SearchResult = {
-      answer: answerFrom(ranked, keywords),
-      memories: ranked.map((match) => match.memory),
-    };
-    return of(result).pipe(delay(FAKE_THINKING_MS));
+    return this.http
+      .get<MemorySearchResponse>(`${MEMORIES_URL}/search`, {
+        params: { q: query, limit: SEARCH_LIMIT },
+      })
+      .pipe(map((response) => ({ answer: null, memories: response.items })));
   }
 
   // The backend will own titles, type detection and file storage; this mimics them for now.
@@ -252,33 +243,4 @@ function describeRows(rows: string[][] | null): string[] {
 // `delay` only holds back values, so a pretend failure waits on a timer instead.
 function failLater(message: string): Observable<never> {
   return timer(FAKE_LATENCY_MS).pipe(switchMap(() => throwError(() => new Error(message))));
-}
-
-/** How many of the keywords a memory mentions anywhere (title, text, files, table rows). */
-function scoreOf(memory: Memory, keywords: string[]): number {
-  const searchable = [
-    memory.title,
-    ...passagesOf(memory),
-    ...memory.attachments.map((attachment) => attachment.file_name),
-  ]
-    .join(' ')
-    .toLowerCase();
-  return keywords.filter((keyword) => searchable.includes(keyword)).length;
-}
-
-/** One clear best match gets a short answer from it; a tie asks the user to pick. */
-function answerFrom(
-  ranked: { memory: Memory; score: number }[],
-  keywords: string[],
-): SearchAnswer | null {
-  const [best, second] = ranked;
-  if (!best) return null;
-  if (second && second.score === best.score) {
-    const count = ranked.filter((match) => match.score === best.score).length;
-    return { text: `${count} memories could match. Which one do you mean?`, sources: [] };
-  }
-  const memory = best.memory;
-  const text =
-    bestPassage(memory, keywords) ?? memory.summary ?? `"${memory.title}" looks like the one.`;
-  return { text, sources: [{ id: memory.id, title: memory.title }] };
 }

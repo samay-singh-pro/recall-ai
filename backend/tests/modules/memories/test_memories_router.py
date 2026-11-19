@@ -3,10 +3,12 @@ from collections.abc import AsyncIterator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from langchain_core.documents import Document
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 from app.main import create_app
+from app.modules.memories.dependencies import get_vector_store
 from app.modules.memories.models import Memory
 
 pytestmark = pytest.mark.anyio
@@ -303,3 +305,128 @@ async def test_renaming_an_unknown_memory_returns_404_and_without_login_401(
 
     assert (await client.patch(url, json={"title": "x"}, headers=headers)).status_code == 404
     assert (await client.patch(url, json={"title": "x"})).status_code == 401
+
+
+async def test_saved_text_can_be_found_by_meaning_and_is_removed_on_delete(
+    client: AsyncClient,
+) -> None:
+    headers = await sign_up(client, "asha@example.com")
+    created = await client.post(MEMORIES_URL, data={"text": "Vet is Dr. Rao"}, headers=headers)
+    memory_id = created.json()["id"]
+    store = get_vector_store()
+
+    found = store.similarity_search("Vet is Dr. Rao", k=1)
+    assert [(doc.page_content, doc.metadata["memory_id"]) for doc in found] == [
+        ("Vet is Dr. Rao", memory_id)
+    ]
+    assert found[0].metadata["user_id"]
+
+    await client.delete(f"{MEMORIES_URL}/{memory_id}", headers=headers)
+    assert store.similarity_search("Vet is Dr. Rao", k=1) == []
+
+
+async def test_a_file_only_memory_adds_nothing_to_the_search_index(client: AsyncClient) -> None:
+    headers = await sign_up(client, "asha@example.com")
+
+    await client.post(
+        MEMORIES_URL,
+        files=[("files", ("menu.pdf", b"%PDF-1.4 x", "application/pdf"))],
+        headers=headers,
+    )
+
+    assert get_vector_store().similarity_search("menu", k=1) == []
+
+
+async def test_the_memory_is_still_saved_when_the_search_index_fails(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    headers = await sign_up(client, "asha@example.com")
+
+    async def broken(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("embedding service is down")
+
+    monkeypatch.setattr(get_vector_store(), "aadd_texts", broken)
+
+    response = await client.post(MEMORIES_URL, data={"text": "Gym at 7"}, headers=headers)
+
+    assert response.status_code == 201
+    assert (
+        await client.get(f"{MEMORIES_URL}/{response.json()['id']}", headers=headers)
+    ).status_code == 200
+
+
+async def test_search_returns_only_memories_that_are_close_enough(client: AsyncClient) -> None:
+    headers = await sign_up(client, "asha@example.com")
+    for text in ["Vet is Dr. Rao", "Mom phone 98765", "Gym at 7 this evening"]:
+        await client.post(MEMORIES_URL, data={"text": text}, headers=headers)
+
+    # The fake embedding model only treats identical text as close, so one memory passes the
+    # cut-off even though three are saved and room for five was asked for.
+    response = await client.get(
+        f"{MEMORIES_URL}/search", params={"q": "Mom phone 98765", "limit": 5}, headers=headers
+    )
+
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert [item["raw_text"] for item in items] == ["Mom phone 98765"]
+    assert set(items[0]) == MEMORY_FIELDS
+
+
+async def test_search_returns_nothing_when_no_memory_is_close(client: AsyncClient) -> None:
+    headers = await sign_up(client, "asha@example.com")
+    await client.post(MEMORIES_URL, data={"text": "Vet is Dr. Rao"}, headers=headers)
+
+    response = await client.get(
+        f"{MEMORIES_URL}/search", params={"q": "tax return deadline"}, headers=headers
+    )
+
+    assert response.status_code == 200
+    assert response.json()["items"] == []
+
+
+async def test_search_never_returns_another_users_memories(client: AsyncClient) -> None:
+    asha = await sign_up(client, "asha@example.com")
+    ravi = await sign_up(client, "ravi@example.com")
+    await client.post(MEMORIES_URL, data={"text": "Asha secret locker 4321"}, headers=asha)
+
+    response = await client.get(
+        f"{MEMORIES_URL}/search", params={"q": "Asha secret locker 4321"}, headers=ravi
+    )
+
+    assert response.status_code == 200
+    assert response.json()["items"] == []
+
+
+async def test_search_needs_a_question_and_a_login(client: AsyncClient) -> None:
+    headers = await sign_up(client, "asha@example.com")
+
+    assert (await client.get(f"{MEMORIES_URL}/search", headers=headers)).status_code == 422
+    assert (await client.get(f"{MEMORIES_URL}/search", params={"q": "x"})).status_code == 401
+
+
+async def test_search_drops_a_match_that_is_far_below_the_best_one(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    headers = await sign_up(client, "asha@example.com")
+    saved = []
+    for text in ["Rent is due by the 5th", "Rent receipt in the drawer", "Flight leaves 14 March"]:
+        response = await client.post(MEMORIES_URL, data={"text": text}, headers=headers)
+        saved.append(response.json())
+
+    async def scored(question: str, k: int, filter: dict[str, str]):
+        # All three are above the minimum score (0.63); only the first two are near the best.
+        return [
+            (Document(page_content=memory["raw_text"], metadata={"memory_id": memory["id"]}), score)
+            for memory, score in zip(saved, [0.76, 0.73, 0.64], strict=True)
+        ]
+
+    monkeypatch.setattr(get_vector_store(), "asimilarity_search_with_relevance_scores", scored)
+
+    response = await client.get(
+        f"{MEMORIES_URL}/search", params={"q": "when do I pay rent"}, headers=headers
+    )
+
+    assert [item["raw_text"] for item in response.json()["items"]] == [
+        "Rent is due by the 5th",
+        "Rent receipt in the drawer",
+    ]

@@ -6,6 +6,7 @@ import { Observable, firstValueFrom } from 'rxjs';
 import { Memory } from './memory';
 import { MemoriesApi } from './memories-api';
 import { createSampleMemories } from './sample-memories';
+import { SearchResult } from './search-result';
 
 const MEMORIES_URL = '/api/v1/memories';
 
@@ -81,6 +82,19 @@ describe('MemoriesApi backend calls', () => {
     expect(result).toEqual(memories);
   });
 
+  it('searches on the backend and shows the closest memories, without a written answer', () => {
+    const memories = [textMemory('Mom phone 98765')];
+    let result: SearchResult | undefined;
+
+    service.searchMemories('mom number').subscribe((found) => (result = found));
+
+    const request = backend.expectOne((req) => req.url === `${MEMORIES_URL}/search`);
+    expect(request.request.params.get('q')).toBe('mom number');
+    expect(request.request.params.get('limit')).toBe('5');
+    request.flush({ items: memories });
+    expect(result).toEqual({ answer: null, memories });
+  });
+
   it('gets one memory by id, and passes a 404 on', () => {
     const memory = textMemory('Mom phone 98765');
     let status = 0;
@@ -120,9 +134,9 @@ describe('MemoriesApi backend calls', () => {
   });
 });
 
-// Asking, searching, renaming and saving answers are still an in-browser stand-in. It works on
+// Asking a memory and saving answers are still an in-browser stand-in. It works on
 // the memories loaded from the backend, so each test first "loads" some.
-describe('MemoriesApi stand-in for ask, search and rename', () => {
+describe('MemoriesApi stand-in for ask and save answer', () => {
   let service: MemoriesApi;
   let backend: HttpTestingController;
 
@@ -181,86 +195,6 @@ describe('MemoriesApi stand-in for ask, search and rename', () => {
       raw_text: answer.text,
       source_memory: { id: 'sample-lease', title: 'Apartment lease agreement' },
     });
-  });
-
-  it('finds memories with the suggested searches', async () => {
-    load(createSampleMemories());
-
-    const parking = await settle(service.searchMemories('Where did I park at the airport?'));
-    const rent = await settle(service.searchMemories('When is the rent due?'));
-
-    expect(parking.memories[0].id).toBe('sample-parking');
-    expect(parking.answer?.text).toContain('level P2, spot C-47');
-    expect(rent.memories[0].id).toBe('sample-lease');
-    expect(rent.answer?.text).toContain('due by the 5th');
-  });
-
-  it('answers about a saved link from what the page is about, not its address', async () => {
-    load(createSampleMemories());
-
-    const result = await settle(service.searchMemories('banana bread recipe'));
-
-    expect(result.memories[0].id).toBe('sample-recipe');
-    expect(result.answer?.text).not.toContain('https://');
-    expect(result.answer?.text).toContain('banana bread');
-  });
-
-  it('searches by the new title after a rename', async () => {
-    const [first] = createSampleMemories();
-    load([first]);
-    service.updateMemory(first.id, { title: 'Wifi at home' }).subscribe();
-    backend
-      .expectOne({ method: 'PATCH', url: `${MEMORIES_URL}/${first.id}` })
-      .flush({ ...first, title: 'Wifi at home' });
-
-    const result = await settle(service.searchMemories('wifi at home'));
-
-    expect(result.memories[0].title).toBe('Wifi at home');
-  });
-
-  it('finds a memory that was just saved', async () => {
-    const saved = textMemory('Vet appointment for Bruno on Friday at 5');
-    load([textMemory('Mom phone 98765')]);
-    service.createMemory({ text: saved.title, files: [] }).subscribe();
-    backend.expectOne({ method: 'POST', url: MEMORIES_URL }).flush(saved);
-
-    const result = await settle(service.searchMemories('When is the vet appointment?'));
-
-    expect(result.memories.map((memory) => memory.id)).toEqual([saved.id]);
-    expect(result.answer?.sources).toEqual([{ id: saved.id, title: saved.title }]);
-  });
-
-  it('stops finding a memory once it is deleted', async () => {
-    const mom = textMemory('Mom phone 98765');
-    load([mom]);
-    service.deleteMemory(mom.id).subscribe();
-    backend.expectOne({ method: 'DELETE', url: `${MEMORIES_URL}/${mom.id}` }).flush(null);
-
-    const result = await settle(service.searchMemories('mom phone'));
-
-    expect(result).toEqual({ answer: null, memories: [] });
-  });
-
-  it('lists the candidates instead of guessing when several match equally', async () => {
-    load([textMemory('Gym at 7 this evening'), textMemory('Pack the gym bag')]);
-
-    const result = await settle(service.searchMemories('gym'));
-
-    expect(result.memories).toHaveLength(2);
-    expect(result.answer).toEqual({
-      text: '2 memories could match. Which one do you mean?',
-      sources: [],
-    });
-  });
-
-  it('shows at most five matches, best first', async () => {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => `Gym on ${day}`);
-    load([...days, 'Gym with Rahul on Sunday'].map(textMemory));
-
-    const result = await settle(service.searchMemories('gym with Rahul'));
-
-    expect(result.memories).toHaveLength(5);
-    expect(result.memories[0].title).toBe('Gym with Rahul on Sunday');
   });
 });
 
