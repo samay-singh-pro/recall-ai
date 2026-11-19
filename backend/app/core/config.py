@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Self
+from typing import Literal, Self
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -28,7 +28,14 @@ class Settings(BaseSettings):
         default="sqlite+aiosqlite:///./recall.db", description="SQLAlchemy async database URL"
     )
 
-    # File storage (Supabase Storage). Empty until filled in .env; checked when storage is used.
+    # Where uploaded files are kept. "local" is a folder on this machine (dev); a "supabase"
+    # option will use the Supabase settings below.
+    file_storage: Literal["local"] = Field(default="local", description="Which storage to use")
+    local_storage_dir: str = Field(
+        default="./uploads", description="Folder for uploads when file_storage is local"
+    )
+
+    # Supabase Storage. Empty until filled in .env; checked when storage is used.
     supabase_url: str = Field(default="", description="Project URL, e.g. https://<ref>.supabase.co")
     supabase_secret_key: SecretStr = Field(
         default=SecretStr(""), description="Server-only secret key; never sent to the browser"

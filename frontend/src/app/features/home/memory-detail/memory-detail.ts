@@ -1,4 +1,4 @@
-import { DOCUMENT, DatePipe, Location } from '@angular/common';
+import { DatePipe, Location } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -22,7 +22,7 @@ import { Menu } from 'primeng/menu';
 import { Skeleton } from 'primeng/skeleton';
 import { EMPTY, Observable, catchError, switchMap, tap } from 'rxjs';
 
-import { Attachment } from '../attachment';
+import { AttachmentFilesApi } from '../attachment-files-api';
 import { AskMemory } from '../components/ask-memory/ask-memory';
 import { MemoryContent } from '../components/memory-content/memory-content';
 import { MemoriesApi } from '../memories-api';
@@ -64,7 +64,7 @@ export class MemoryDetail {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
-  private readonly document = inject(DOCUMENT);
+  private readonly filesApi = inject(AttachmentFilesApi);
   private readonly destroyRef = inject(DestroyRef);
   private readonly titleInput = viewChild<ElementRef<HTMLInputElement>>('titleInput');
 
@@ -106,7 +106,7 @@ export class MemoryDetail {
       ...files.map((file) => ({
         label: files.length === 1 ? 'Download' : `Download ${file.file_name}`,
         icon: 'pi pi-download',
-        command: () => this.download(file),
+        command: () => this.filesApi.saveFile(file),
       })),
       { separator: true },
       { label: 'Delete', icon: 'pi pi-trash', command: () => this.confirmDelete(memory) },
@@ -262,14 +262,6 @@ export class MemoryDetail {
       () => this.messageService.add({ severity: 'success', summary: 'Copied to clipboard' }),
       () => this.showError("Couldn't copy. Please try again."),
     );
-  }
-
-  // A menu item can't be a download link itself, so click a temporary one.
-  private download(file: Attachment): void {
-    const link = this.document.createElement('a');
-    link.href = file.file_url;
-    link.download = file.file_name;
-    link.click();
   }
 
   private confirmDelete(memory: Memory): void {

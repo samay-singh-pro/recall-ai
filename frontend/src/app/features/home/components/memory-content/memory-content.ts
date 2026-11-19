@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
   linkedSignal,
   output,
@@ -11,6 +12,7 @@ import { Button, ButtonDirective, ButtonIcon, ButtonLabel } from 'primeng/button
 import { SelectButton } from 'primeng/selectbutton';
 
 import { Attachment } from '../../attachment';
+import { AttachmentFilesApi } from '../../attachment-files-api';
 import { Memory } from '../../memory';
 import { MEMORY_TYPE_COLORS, MEMORY_TYPE_ICONS } from '../../memory-type-display';
 import { AttachmentPreview, describeFile } from '../attachment-preview/attachment-preview';
@@ -48,6 +50,8 @@ export interface ContentPart {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MemoryContent {
+  protected readonly filesApi = inject(AttachmentFilesApi);
+
   readonly memory = input.required<Memory>();
   readonly copyText = output<string>();
 

@@ -29,20 +29,26 @@ export class AuthSession {
     return this.login()?.access_token ?? null;
   }
 
+  /** The refresh token, used to get a new access token, or null when logged out. */
+  refreshToken(): string | null {
+    return this.login()?.refresh_token ?? null;
+  }
+
   /** Remember a fresh login, in memory and in the browser's storage. */
   saveLogin(tokens: AuthTokens, name: string): void {
     // Only the tokens and the name are kept, even if the caller passes a larger object.
-    const login: StoredLogin = {
+    this.store({
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
       name,
-    };
-    this.login.set(login);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(login));
-    } catch {
-      // Storage can be blocked (e.g. private windows); the login still works until the tab closes.
-    }
+    });
+  }
+
+  /** Swap in a new access token after a refresh; the user stays logged in under the same name. */
+  saveAccessToken(accessToken: string): void {
+    const login = this.login();
+    if (login === null) return;
+    this.store({ ...login, access_token: accessToken });
   }
 
   /** Forget the login, which logs the user out. */
@@ -52,6 +58,16 @@ export class AuthSession {
       localStorage.removeItem(STORAGE_KEY);
     } catch {
       // Nothing was stored, so nothing to remove.
+    }
+  }
+
+  /** Keep a login in memory and in the browser's storage. */
+  private store(login: StoredLogin): void {
+    this.login.set(login);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(login));
+    } catch {
+      // Storage can be blocked (e.g. private windows); the login still works until the tab closes.
     }
   }
 }

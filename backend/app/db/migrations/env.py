@@ -13,6 +13,7 @@ from app.db.base import Base
 
 # Every module's models must be imported here so autogenerate can see their tables.
 from app.modules.auth.models import User  # noqa: F401
+from app.modules.memories.models import Attachment, Memory  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:
