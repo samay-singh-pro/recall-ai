@@ -19,6 +19,7 @@ def anyio_backend() -> str:
 def isolated_database(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """Point every test at its own throwaway SQLite file, never the dev database."""
     monkeypatch.setenv("DATABASE_URL", f"sqlite+aiosqlite:///{tmp_path / 'test.db'}")
+    monkeypatch.setenv("LOCAL_STORAGE_DIR", str(tmp_path / "uploads"))
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()

@@ -6,7 +6,7 @@ Status: [x] done, [ ] todo, [~] in progress
 - [~] **Phase 1** — Backend skeleton: FastAPI app, config, SQLAlchemy + Alembic, auth (signup/login/JWT), LLM factories (LangChain), Dockerfile, health check, tests
   - [x] FastAPI app, config, health check
   - [x] Database foundation: SQLAlchemy (async), Alembic, shared table base
-  - [~] Save a dump: text memories are done: `POST /memories`, `GET /memories` (paged list), `GET /memories/{id}`, `DELETE /memories/{id}`; still todo: files to Supabase Storage, rename
+  - [x] Save a dump: `POST /memories` (form: text and/or files), `GET /memories` (paged list), `GET /memories/{id}`, `GET /memories/{id}/attachments/{id}/file` (download), `PATCH /memories/{id}` (rename), `DELETE /memories/{id}`. The response has its final shape; files are kept by a swappable storage layer (local folder now). Still empty until the AI parts exist: `summary`, `link_preview`, `source_memory`, spreadsheet `preview_rows`. Todo: Supabase storage adapter, connect Home to the real API
   - [x] Auth backend (`users` table with a display `name` + migrations, schemas, repository, Argon2 hashing, JWT access/refresh tokens, service, `POST /auth/signup` and `POST /auth/login` (both return tokens + user), `POST /auth/refresh`, `GET /auth/me` and the `get_current_user` guard)
   - [ ] LLM factories, Dockerfile
 - [ ] **Phase 2** — Text dumps: memories CRUD, embeddings, LangChain VectorStore (Chroma), search, LangGraph chat agent (core learning loop)
